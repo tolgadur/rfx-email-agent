@@ -1,5 +1,6 @@
 # Project structure
 
+```
 email-agent/
 ├── app/
 │ ├── main.py # Entry point: main polling script
@@ -10,3 +11,4 @@ email-agent/
 ├── requirements.txt # Python dependencies
 ├── .env # Environment variables for secrets (not checked into version control)
 └── README.md # Documentation
+```
