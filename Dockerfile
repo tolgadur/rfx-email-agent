@@ -1,5 +1,6 @@
 FROM python:3.9-slim
 
+# Set the working directory
 WORKDIR /app
 
 # Install dependencies
@@ -12,5 +13,5 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Run the script
+# Run the script inside the app folder
 CMD ["python", "app/main.py"]

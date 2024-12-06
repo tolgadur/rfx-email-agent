@@ -3,32 +3,39 @@ import email
 import smtplib
 import time
 from email.message import EmailMessage
-from app.config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
+from config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
 
 
 def fetch_emails():
+    print(f"IMAP_SERVER: {IMAP_SERVER}, EMAIL: {EMAIL}")
+    
     while True:  # Keep running indefinitely
-        mail = imaplib.IMAP4_SSL(IMAP_SERVER)
-        mail.login(EMAIL, PASSWORD)
-        mail.select("inbox")
+        try:
+            mail = imaplib.IMAP4_SSL(IMAP_SERVER, port=993)
+            mail.login(EMAIL, PASSWORD)
+            mail.select("inbox")
 
-        _, message_numbers = mail.search(None, "UNSEEN")
-        for num in message_numbers[0].split():
-            print(f"New email received: {num}")
-            _, msg_data = mail.fetch(num, "(RFC822)")
-            for response_part in msg_data:
-                if isinstance(response_part, tuple):
-                    msg = email.message_from_bytes(response_part[1])
-                    sender = msg["From"]
-                    subject = msg["Subject"]
-                    body = extract_body(msg)
-                    print(f"Email received from {sender}.")
-                    yield sender, subject, body
+            _, message_numbers = mail.search(None, "UNSEEN")
+            for num in message_numbers[0].split():
+                print(f"New email received: {num}")
+                _, msg_data = mail.fetch(num, "(RFC822)")
+                for response_part in msg_data:
+                    if isinstance(response_part, tuple):
+                        msg = email.message_from_bytes(response_part[1])
+                        sender = msg["From"]
+                        subject = msg["Subject"]
+                        body = extract_body(msg)
+                        print(f"Email received from {sender}.")
+                        yield sender, subject, body
 
-        mail.logout()
+            mail.logout()
 
-        # Pause before checking for new emails again (e.g., 30 seconds)
-        time.sleep(30)
+            # Pause before checking for new emails again (e.g., 30 seconds)
+            time.sleep(30)
+        except Exception as e:
+            print(f"Connection error: {e}")
+            time.sleep(5)  # Wait before retrying
+            continue
 
 
 def extract_body(msg):

@@ -1,4 +1,4 @@
-from app.email_handler import fetch_emails, send_email_response
+from email_handler import fetch_emails, send_email_response
 
 
 def main():
