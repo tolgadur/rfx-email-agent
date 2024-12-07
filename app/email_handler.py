@@ -8,8 +8,8 @@ from config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
 
 def fetch_emails():
     print(f"IMAP_SERVER: {IMAP_SERVER}, EMAIL: {EMAIL}")
-    
-    while True:  # Keep running indefinitely
+
+    while True:
         try:
             mail = imaplib.IMAP4_SSL(IMAP_SERVER, port=993)
             mail.login(EMAIL, PASSWORD)
@@ -20,7 +20,7 @@ def fetch_emails():
                 print(f"New email received: {num}")
                 _, msg_data = mail.fetch(num, "(RFC822)")
                 for response_part in msg_data:
-                    if isinstance(response_part, tuple):
+                    if isinstance(response_part, tuple) and len(response_part) > 1:
                         msg = email.message_from_bytes(response_part[1])
                         sender = msg["From"]
                         subject = msg["Subject"]
@@ -38,7 +38,7 @@ def fetch_emails():
             continue
 
 
-def extract_body(msg):
+def extract_body(msg: email.message.Message) -> str:
     body = ""
     if msg.is_multipart():
         for part in msg.walk():
@@ -50,7 +50,7 @@ def extract_body(msg):
     return body
 
 
-def send_email_response(to_email, subject, body):
+def send_email_response(to_email: str, subject: str, body: str):
     print("Sending email response...")
     msg = EmailMessage()
     msg["From"] = EMAIL

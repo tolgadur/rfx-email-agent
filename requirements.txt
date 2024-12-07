@@ -1,2 +1,4 @@
 imapclient
 python-dotenv
+pinecone[gRPC]
+pinecone-plugin-assistant

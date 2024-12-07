@@ -1,4 +1,5 @@
 from email_handler import fetch_emails, send_email_response
+from pinecone_handler import send_message_to_assistant
 
 
 def main():
@@ -6,9 +7,10 @@ def main():
     for sender, subject, body in fetch_emails():
         print(f"Processing email from {sender}: {subject}")
 
-        # Example response logic
-        response_body = f"Hello,\n\nYou asked: {body}\n\nHere is your automated response!"
-        send_email_response(to_email=sender, subject=subject, body=response_body)
+        assistant_question = body
+        response = send_message_to_assistant(assistant_question)
+
+        send_email_response(to_email=sender, subject=subject, body=response)
 
 
 if __name__ == "__main__":
