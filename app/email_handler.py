@@ -4,6 +4,7 @@ import smtplib
 import time
 from email.message import EmailMessage
 from config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
+from excel_handler import process_excel_attachment
 
 
 def has_excel_attachment(msg: email.message.Message) -> bool:
@@ -35,16 +36,24 @@ def fetch_emails():
                         subject = msg["Subject"]
                         body = extract_body(msg)
 
+                        excel_result, attachment = process_excel_attachment(msg)
+                        has_excel = excel_result != "No Excel file found in attachment"
+
+                        if has_excel:
+                            body = (
+                                f"{body}\n\n"
+                                f"Excel Processing Result:\n{excel_result}"
+                            )
+
                         print(f"Email received from {sender}.")
-                        yield sender, subject, body, has_excel_attachment(msg)
+                        yield sender, subject, body, attachment
 
             mail.logout()
-
-            # Pause before checking for new emails again (e.g., 30 seconds)
             time.sleep(30)
+
         except Exception as e:
             print(f"Connection error: {e}")
-            time.sleep(5)  # Wait before retrying
+            time.sleep(5)
             continue
 
 
@@ -60,13 +69,22 @@ def extract_body(msg: email.message.Message) -> str:
     return body
 
 
-def send_email_response(to_email: str, subject: str, body: str):
+def send_email_response(to_email: str, subject: str, body: str, attachment=None):
     print("Sending email response...")
     msg = EmailMessage()
     msg["From"] = EMAIL
     msg["To"] = to_email
     msg["Subject"] = f"Re: {subject}"
     msg.set_content(body)
+
+    # Add attachment if present
+    if attachment:
+        msg.add_attachment(
+            attachment.getvalue(),
+            maintype="application",
+            subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            filename="processed_questions.xlsx"
+        )
 
     with smtplib.SMTP(SMTP_SERVER, 587) as smtp:
         smtp.starttls()
