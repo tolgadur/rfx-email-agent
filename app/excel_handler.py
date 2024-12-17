@@ -9,13 +9,20 @@ def extract_excel_from_email(msg: Message):
         for part in msg.walk():
             if part.get_content_maintype() == "application":
                 filename = part.get_filename()
-                if filename and (
-                    filename.endswith(".xlsx") or filename.endswith(".xls")
-                ):
-                    payload = part.get_payload(decode=True)
-                    excel_file = io.BytesIO(payload)
-                    print(f"Successfully extracted Excel file: {filename}")
-                    return excel_file, filename
+                if filename:
+                    # Check for valid Excel extensions
+                    if filename.endswith((".xlsx", ".xls")):
+                        payload = part.get_payload(decode=True)
+                        excel_file = io.BytesIO(payload)
+                        print(f"Successfully extracted Excel file: {filename}")
+                        return excel_file, filename
+                    else:
+                        # Return error for unsupported file formats
+                        error_msg = (
+                            f"Unsupported file format: {filename}. "
+                            "Please provide an Excel file (.xlsx or .xls)"
+                        )
+                        return None, error_msg
         return None, "No Excel file found in attachment"
     except Exception as e:
         print(f"Error extracting Excel file: {e}")
@@ -76,7 +83,7 @@ def process_excel_attachment(msg: Message):
         return (
             "Excel file processed successfully. "
             f"Processed {len(processed_df)} questions and added answers.",
-            output
+            output,
         )
 
     except Exception as e:
