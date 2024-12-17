@@ -6,6 +6,15 @@ from email.message import EmailMessage
 from config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
 
 
+def has_excel_attachment(msg: email.message.Message) -> bool:
+    for part in msg.walk():
+        if part.get_content_maintype() == "application":
+            filename = part.get_filename()
+            if filename and (filename.endswith(".xlsx") or filename.endswith(".xls")):
+                return True
+    return False
+
+
 def fetch_emails():
     print(f"IMAP_SERVER: {IMAP_SERVER}, EMAIL: {EMAIL}")
 
@@ -25,8 +34,9 @@ def fetch_emails():
                         sender = msg["From"]
                         subject = msg["Subject"]
                         body = extract_body(msg)
+
                         print(f"Email received from {sender}.")
-                        yield sender, subject, body
+                        yield sender, subject, body, has_excel_attachment(msg)
 
             mail.logout()
 
@@ -62,3 +72,4 @@ def send_email_response(to_email: str, subject: str, body: str):
         smtp.starttls()
         smtp.login(EMAIL, PASSWORD)
         smtp.send_message(msg)
+    print("Email sent successfully.")

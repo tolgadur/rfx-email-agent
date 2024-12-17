@@ -14,7 +14,12 @@ except Exception as e:
     raise
 
 
-def send_message_to_assistant(message: str) -> str:
+def send_message_to_assistant(message: str, has_excel: bool = False) -> str:
+    """Send message to assistant and handle empty messages and Excel attachments."""
+    # Check if message is empty or just whitespace/newlines
+    if not message or message.strip() in ["", "\r\n"]:
+        return "Excel file found in attachment." if has_excel else ""
+
     try:
         msg = Message(role="user", content=message)
         response = ASSISTANT.chat(messages=[msg])
@@ -31,12 +36,13 @@ def send_message_to_assistant(message: str) -> str:
             f"Similarity Scores: {similarity_scores}\n"
             f"Citations: {citations}"
         )
-        return formatted_response
 
-    except AttributeError as e:
-        print(f"Assistant method not found: {e}")
-        raise
+        # Add Excel notification if needed
+        if has_excel:
+            formatted_response += "\n\nExcel file found in attachment."
+
+        return formatted_response
 
     except Exception as e:
         print(f"Error sending message: {e}")
-        raise
+        return "Excel file found in attachment." if has_excel else ""
