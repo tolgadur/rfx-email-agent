@@ -4,7 +4,6 @@ import smtplib
 import time
 from email.message import EmailMessage
 from config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
-from excel_handler import process_excel_attachment
 
 
 def has_excel_attachment(msg: email.message.Message) -> bool:
@@ -36,17 +35,8 @@ def fetch_emails():
                         subject = msg["Subject"]
                         body = extract_body(msg)
 
-                        excel_result, attachment = process_excel_attachment(msg)
-                        has_excel = excel_result != "No Excel file found in attachment"
-
-                        if has_excel:
-                            body = (
-                                f"{body}\n\n"
-                                f"Excel Processing Result:\n{excel_result}"
-                            )
-
                         print(f"Email received from {sender}.")
-                        yield sender, subject, body, attachment
+                        yield sender, subject, body, msg
 
             mail.logout()
             time.sleep(30)
