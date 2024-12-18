@@ -30,11 +30,8 @@ def extract_excel_from_email(msg: Message):
 
 
 def process_questions(df: pd.DataFrame):
-    """Process questions in DataFrame and get answers."""
+    """Process all columns in DataFrame and get answers."""
     try:
-        if "Questions" not in df.columns:
-            return None, "No 'Questions' column detected in Excel file"
-
         if df.empty:
             return None, "Excel file is empty"
 
@@ -42,8 +39,15 @@ def process_questions(df: pd.DataFrame):
 
         # Create a copy to avoid modifying the original
         processed_df = df.copy()
-        processed_df["Answers"] = processed_df["Questions"].apply(
-            lambda q: (send_message_to_assistant(str(q)) if pd.notna(q) else "")
+
+        # Create concatenated questions from all columns, skipping the header row
+        concatenated_questions = processed_df.apply(
+            lambda row: "\n".join(str(val) for val in row if pd.notna(val)), axis=1
+        )
+
+        # Add a new column for answers
+        processed_df["Answers"] = concatenated_questions.apply(
+            lambda q: send_message_to_assistant(q) if q else ""
         )
 
         if processed_df["Answers"].notna().any():

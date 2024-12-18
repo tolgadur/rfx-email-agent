@@ -4,3 +4,4 @@ app/__pycache__/
 .cursor
 .cursor-history
 .cursor-composer-history
+.DS_Store
