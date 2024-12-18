@@ -7,7 +7,7 @@ def process_email(sender: str, subject: str, body: str, msg):
     """Process a single email with its potential attachments."""
     # Get response from assistant for the email body
     response = send_message_to_assistant(body)
-    
+
     # Process Excel attachment if present
     excel_result, attachment = process_excel_attachment(msg)
     has_excel = excel_result != "No Excel file found in attachment"
@@ -19,10 +19,7 @@ def process_email(sender: str, subject: str, body: str, msg):
 
     if final_response:
         send_email_response(
-            to_email=sender,
-            subject=subject,
-            body=final_response,
-            attachment=attachment
+            to_email=sender, subject=subject, body=final_response, attachment=attachment
         )
 
 

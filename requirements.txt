@@ -1,7 +1,11 @@
 imapclient
 python-dotenv
-pinecone[gRPC]
+pinecone
+pinecone-client[gRPC]
 pinecone-plugin-assistant
 pandas
 openpyxl
 xlrd
+pytest
+pytest-mock
+pytest-email

@@ -5,3 +5,4 @@ app/__pycache__/
 .cursor-history
 .cursor-composer-history
 .DS_Store
+.vscode
