@@ -166,9 +166,12 @@ def process_excel_attachment(msg: Message) -> Tuple[str, Dict[str, io.BytesIO]]:
     excel_files, skipped_files = extract_excel_from_email(msg)
 
     # Initialize results with skipped files
-    results = [
-        f"File '{filename}' was skipped: {reason}" for filename, reason in skipped_files
-    ]
+    results = []
+    if skipped_files:
+        results.extend(
+            f"File '{filename}' was skipped: {reason}"
+            for filename, reason in skipped_files
+        )
 
     if not excel_files and not skipped_files:
         return "No attachments found.", {}
@@ -183,13 +186,7 @@ def process_excel_attachment(msg: Message) -> Tuple[str, Dict[str, io.BytesIO]]:
         else:
             results.append(f"File '{filename}' could not be processed: {message}")
 
-    # Create summary message
-    summary = create_summary_message(
-        total_files=len(excel_files) + len(skipped_files),
-        success_count=len(processed_files),
-        failed_count=len(excel_files) - len(processed_files),
-        skipped_count=len(skipped_files),
-        results=results,
-    )
+    # Create detailed summary
+    detailed_summary = "\n".join(f"- {result}" for result in results)
 
-    return summary, processed_files
+    return detailed_summary, processed_files
