@@ -52,14 +52,23 @@ def extract_body(msg: email.message.Message) -> str:
     if msg.is_multipart():
         for part in msg.walk():
             if part.get_content_type() == "text/plain":
-                body = part.get_payload(decode=True).decode()
+                try:
+                    body = part.get_payload(decode=True).decode("utf-8")
+                except UnicodeDecodeError:
+                    # Fallback to a different encoding if UTF-8 fails
+                    body = part.get_payload(decode=True).decode(
+                        "iso-8859-1", errors="ignore"
+                    )
                 break
     else:
-        body = msg.get_payload(decode=True).decode()
+        try:
+            body = msg.get_payload(decode=True).decode("utf-8")
+        except UnicodeDecodeError:
+            body = msg.get_payload(decode=True).decode("iso-8859-1", errors="ignore")
     return body
 
 
-def send_email_response(to_email: str, subject: str, body: str, attachment=None):
+def send_email_response(to_email: str, subject: str, body: str, attachments=None):
     print("Sending email response...")
     msg = EmailMessage()
     msg["From"] = EMAIL
@@ -67,14 +76,15 @@ def send_email_response(to_email: str, subject: str, body: str, attachment=None)
     msg["Subject"] = f"Re: {subject}"
     msg.set_content(body)
 
-    # Add attachment if present
-    if attachment:
-        msg.add_attachment(
-            attachment.getvalue(),
-            maintype="application",
-            subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            filename="processed_questions.xlsx"
-        )
+    # Add attachments if present
+    if attachments:
+        for filename, attachment in attachments.items():
+            msg.add_attachment(
+                attachment.getvalue(),
+                maintype="application",
+                subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                filename=filename,
+            )
 
     with smtplib.SMTP(SMTP_SERVER, 587) as smtp:
         smtp.starttls()

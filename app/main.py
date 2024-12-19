@@ -5,21 +5,22 @@ from pinecone_handler import send_message_to_assistant
 
 def process_email(sender: str, subject: str, body: str, msg):
     """Process a single email with its potential attachments."""
-    # Get response from assistant for the email body
+    # Send the body to the assistant and get a response
     response = send_message_to_assistant(body)
 
-    # Process Excel attachment if present
-    excel_result, attachment = process_excel_attachment(msg)
-    has_excel = excel_result != "No Excel file found in attachment"
+    # Process the attachments
+    processed_response, processed_files = process_excel_attachment(msg)
 
-    # Combine assistant response with Excel results if applicable
-    final_response = response
-    if has_excel:
-        final_response = f"{response}\n\nExcel Processing Result:\n{excel_result}"
+    # Combine the responses
+    final_response = response + "\n\n" + processed_response
 
+    # Send the email response with all attachments
     if final_response:
         send_email_response(
-            to_email=sender, subject=subject, body=final_response, attachment=attachment
+            to_email=sender,
+            subject=subject,
+            body=final_response,
+            attachments=processed_files,
         )
 
 
