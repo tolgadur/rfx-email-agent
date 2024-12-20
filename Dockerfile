@@ -12,6 +12,7 @@ COPY . .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
 # Run the script inside the app folder
 CMD ["python", "app/main.py"]

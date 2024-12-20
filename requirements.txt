@@ -9,3 +9,4 @@ xlrd
 pytest
 pytest-mock
 pytest-email
+jinja2
