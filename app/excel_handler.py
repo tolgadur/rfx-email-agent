@@ -2,7 +2,7 @@ import io
 from typing import List, Tuple, Dict, Optional
 import pandas as pd
 from email.message import Message
-from pinecone_handler import send_message_to_assistant
+from app.pinecone_handler import send_message_to_assistant
 
 
 def is_excel_file(filename: str) -> bool:

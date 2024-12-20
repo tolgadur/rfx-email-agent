@@ -1,8 +1,13 @@
 .env
 .idea/
 app/__pycache__/
+tests/__pycache__/
+.pytest_cache/
+__pycache__/
 .cursor
 .cursor-history
 .cursor-composer-history
 .DS_Store
 .vscode
+*.egg-info/
+*.egg-info/*

@@ -3,7 +3,7 @@ import email
 import smtplib
 import time
 from email.message import EmailMessage
-from config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
+from app.config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
 
 
 def has_excel_attachment(msg: email.message.Message) -> bool:

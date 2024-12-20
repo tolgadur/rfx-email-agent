@@ -1,7 +1,7 @@
-from email_handler import fetch_emails, send_email_response
-from excel_handler import process_excel_attachment, extract_excel_from_email
-from pinecone_handler import send_message_to_assistant
-from template_handler import render_email_template
+from app.email_handler import fetch_emails, send_email_response
+from app.excel_handler import process_excel_attachment, extract_excel_from_email
+from app.pinecone_handler import send_message_to_assistant
+from app.template_handler import render_email_template
 
 
 def process_email(sender: str, subject: str, body: str, msg):
