@@ -10,9 +10,10 @@ from app.excel_handler import ExcelHandler
 def excel_handler():
     """Create an ExcelHandler instance for testing."""
     with patch("app.excel_handler.PineconeHandler") as mock_pinecone_cls:
-        handler = ExcelHandler()
+        mock_pinecone = mock_pinecone_cls.return_value
+        handler = ExcelHandler(pinecone_handler=mock_pinecone)
         # Store mock for easy access in tests
-        handler.mock_pinecone = mock_pinecone_cls.return_value
+        handler.mock_pinecone = mock_pinecone
         yield handler
 
 

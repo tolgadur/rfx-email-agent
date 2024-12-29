@@ -1,3 +1,5 @@
+from dependency_injector.wiring import Provide
+from app.containers import Container
 from app.email_handler import EmailHandler
 from app.excel_handler import ExcelHandler
 from app.pinecone_handler import PineconeHandler
@@ -13,13 +15,28 @@ class EmailAgentRunner:
     templating. The process continues indefinitely until manually stopped.
     """
 
-    def __init__(self):
-        """Initialize all handlers."""
-        self.email_handler = EmailHandler()
-        self.excel_handler = ExcelHandler()
-        self.pinecone_handler = PineconeHandler()
-        self.template_handler = TemplateHandler()
-        self.db_handler = DatabaseHandler()
+    def __init__(
+        self,
+        email_handler: EmailHandler = Provide[Container.email_handler],
+        excel_handler: ExcelHandler = Provide[Container.excel_handler],
+        pinecone_handler: PineconeHandler = Provide[Container.pinecone_handler],
+        template_handler: TemplateHandler = Provide[Container.template_handler],
+        db_handler: DatabaseHandler = Provide[Container.db_handler],
+    ):
+        """Initialize with injected handlers.
+
+        Args:
+            email_handler: Handler for email operations
+            excel_handler: Handler for Excel file processing
+            pinecone_handler: Handler for AI operations
+            template_handler: Handler for email template rendering
+            db_handler: Handler for database operations
+        """
+        self.email_handler = email_handler
+        self.excel_handler = excel_handler
+        self.pinecone_handler = pinecone_handler
+        self.template_handler = template_handler
+        self.db_handler = db_handler
 
     def run(self):
         """Main processing loop that continuously monitors for new emails.

@@ -5,18 +5,30 @@ import time
 from email.message import EmailMessage, Message
 from typing import Generator, Tuple, Dict, Optional
 from io import BytesIO
-from app.config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
 
 
 class EmailHandler:
     """Handles email operations including IMAP polling and SMTP sending."""
 
-    def __init__(self):
-        """Initialize the email handler with server configurations."""
-        self.imap_server = IMAP_SERVER
-        self.smtp_server = SMTP_SERVER
-        self.email = EMAIL
-        self.password = PASSWORD
+    def __init__(
+        self,
+        email: str,
+        password: str,
+        imap_server: str = "imap.gmail.com",
+        smtp_server: str = "smtp.gmail.com",
+    ):
+        """Initialize the email handler with server configurations.
+
+        Args:
+            email: Email address for authentication
+            password: Password for authentication
+            imap_server: IMAP server address
+            smtp_server: SMTP server address
+        """
+        self.email = email
+        self.password = password
+        self.imap_server = imap_server
+        self.smtp_server = smtp_server
 
     def fetch_emails(self) -> Generator[Tuple[str, str, str, Message], None, None]:
         """Continuously fetch unread emails from the inbox.

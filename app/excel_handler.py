@@ -8,9 +8,13 @@ from app.pinecone_handler import PineconeHandler
 class ExcelHandler:
     """Handles Excel file processing from email attachments."""
 
-    def __init__(self):
-        """Initialize handlers."""
-        self.pinecone_handler = PineconeHandler()
+    def __init__(self, pinecone_handler: PineconeHandler):
+        """Initialize handlers.
+
+        Args:
+            pinecone_handler: Handler for AI operations
+        """
+        self.pinecone_handler = pinecone_handler
 
     def process_excel_attachment(
         self, msg: Message

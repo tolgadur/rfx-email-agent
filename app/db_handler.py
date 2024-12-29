@@ -1,20 +1,23 @@
-import os
 import psycopg2
 from psycopg2.extensions import connection
 from typing import Optional
 
 
 class DatabaseHandler:
-    def __init__(self):
+    def __init__(self, database_url: str):
+        """Initialize database handler with connection URL.
+
+        Args:
+            database_url: Database URL in format:
+                postgresql://user:password@host:port/database
+        """
         self.conn: Optional[connection] = None
-        self.db_url = os.getenv("DATABASE_URL")
-        if not self.db_url:
-            raise ValueError("DATABASE_URL environment variable is not set")
+        self.database_url = database_url
 
     def connect(self) -> None:
         """Establish database connection"""
         if not self.conn or self.conn.closed:
-            self.conn = psycopg2.connect(self.db_url)
+            self.conn = psycopg2.connect(self.database_url)
 
     def close(self) -> None:
         """Close database connection"""

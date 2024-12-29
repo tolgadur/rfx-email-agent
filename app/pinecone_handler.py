@@ -1,14 +1,17 @@
 from pinecone import Pinecone
 from pinecone_plugins.assistant.models.chat import Message
-from app.config import PINECONE_API_KEY
 
 
 class PineconeHandler:
     """Handles interactions with Pinecone's AI assistant."""
 
-    def __init__(self):
-        """Initialize the Pinecone handler with API key and assistant."""
-        self.pc = Pinecone(api_key=PINECONE_API_KEY, environment="gcp-starter")
+    def __init__(self, api_key: str):
+        """Initialize the Pinecone handler with API key and assistant.
+
+        Args:
+            api_key: Pinecone API key for authentication
+        """
+        self.pc = Pinecone(api_key=api_key, environment="gcp-starter")
         try:
             self.assistant = self.pc.assistant.Assistant(
                 assistant_name="email-assistant"

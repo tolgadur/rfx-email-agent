@@ -10,7 +10,12 @@ from app.email_handler import EmailHandler
 @pytest.fixture
 def email_handler():
     """Create an EmailHandler instance for testing."""
-    return EmailHandler()
+    return EmailHandler(
+        email="test@example.com",
+        password="test_password",
+        imap_server="imap.test.com",
+        smtp_server="smtp.test.com",
+    )
 
 
 @pytest.fixture
@@ -55,7 +60,9 @@ def test_send_email_response_without_attachments(mock_smtp, email_handler):
     email_handler.send_email_response(to_email, subject, body)
 
     mock_smtp_instance.starttls.assert_called_once()
-    mock_smtp_instance.login.assert_called_once()
+    mock_smtp_instance.login.assert_called_once_with(
+        email_handler.email, email_handler.password
+    )
     mock_smtp_instance.send_message.assert_called_once()
 
     sent_msg = mock_smtp_instance.send_message.call_args[0][0]
@@ -78,7 +85,9 @@ def test_send_email_response_with_attachments(mock_smtp, email_handler):
     email_handler.send_email_response(to_email, subject, body, attachments)
 
     mock_smtp_instance.starttls.assert_called_once()
-    mock_smtp_instance.login.assert_called_once()
+    mock_smtp_instance.login.assert_called_once_with(
+        email_handler.email, email_handler.password
+    )
     mock_smtp_instance.send_message.assert_called_once()
 
     sent_msg = mock_smtp_instance.send_message.call_args[0][0]
