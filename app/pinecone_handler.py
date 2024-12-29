@@ -3,10 +3,10 @@ from pinecone_plugins.assistant.models.chat import Message
 
 
 class PineconeHandler:
-    """Handles interactions with Pinecone's AI assistant."""
+    """Handles Pinecone vector database operations."""
 
     def __init__(self, api_key: str):
-        """Initialize the Pinecone handler with API key and assistant.
+        """Initialize Pinecone handler.
 
         Args:
             api_key: Pinecone API key for authentication

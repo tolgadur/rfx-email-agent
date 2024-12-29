@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2.extensions import connection
-from typing import Optional
+from typing import Optional, List, Union
 
 
 class DatabaseHandler:
@@ -24,7 +24,32 @@ class DatabaseHandler:
         if self.conn and not self.conn.closed:
             self.conn.close()
 
-    def execute_sql_file(self, file_path: str) -> None:
+    def setup_database(self) -> None:
+        """Initialize database with schema and seed data"""
+        try:
+            # Execute schema first
+            self._execute_sql_file("db/schema.sql")
+            # Then seeds
+            self._execute_sql_file("db/seeds.sql")
+            print("Database setup completed successfully")
+        except Exception as e:
+            print(f"Error setting up database: {e}")
+            raise
+
+    def insert_returning_id(self, query: str, params: tuple) -> int:
+        """Execute INSERT query and return the ID"""
+        result = self._execute(query, params, fetch="one")
+        return result[0] if result else None
+
+    def select_all(self, query: str, params: tuple = None) -> List[tuple]:
+        """Execute SELECT query and return all results"""
+        return self._execute(query, params, fetch="all") or []
+
+    def execute_write(self, query: str, params: tuple = None) -> None:
+        """Execute write operation (INSERT/UPDATE/DELETE)"""
+        self._execute(query, params, fetch=None)
+    
+    def _execute_sql_file(self, file_path: str) -> None:
         """Execute SQL commands from a file"""
         try:
             self.connect()
@@ -37,14 +62,21 @@ class DatabaseHandler:
             self.conn.rollback()
             raise e
 
-    def setup_database(self) -> None:
-        """Initialize database with schema and seed data"""
+    def _execute(
+        self, query: str, params: tuple = None, fetch: str = "all"
+    ) -> Union[List[tuple], tuple, None]:
+        """Execute a query and return results based on fetch mode."""
         try:
-            # Execute schema first
-            self.execute_sql_file("db/schema.sql")
-            # Then seeds
-            self.execute_sql_file("db/seeds.sql")
-            print("Database setup completed successfully")
+            self.connect()
+            with self.conn.cursor() as cursor:
+                cursor.execute(query, params)
+                if cursor.description:  # If it's a SELECT query
+                    if fetch == "all":
+                        return cursor.fetchall()
+                    elif fetch == "one":
+                        return cursor.fetchone()
+                self.conn.commit()
+                return None
         except Exception as e:
-            print(f"Error setting up database: {e}")
-            raise
+            self.conn.rollback()
+            raise e

@@ -1,16 +1,16 @@
-from jinja2 import Environment, FileSystemLoader
-from pathlib import Path
+from jinja2 import Template
 
 
 class TemplateHandler:
     """Handles email template rendering using Jinja2."""
 
-    def __init__(self):
-        """Initialize the template handler with Jinja2 environment."""
-        self.env = Environment(
-            loader=FileSystemLoader(Path(__file__).parent.parent / "assets"),
-        )
-        self.template = self.env.get_template("email.md")
+    def __init__(self, template: Template):
+        """Initialize the template handler with a Jinja2 template.
+
+        Args:
+            template: The Jinja2 template to use for rendering
+        """
+        self.template = template
 
     def render_template(
         self,

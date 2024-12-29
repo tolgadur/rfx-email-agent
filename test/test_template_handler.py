@@ -1,12 +1,16 @@
 import pytest
 from pathlib import Path
+from jinja2 import Environment, FileSystemLoader
 from app.template_handler import TemplateHandler
 
 
 @pytest.fixture
 def template_handler():
     """Create a TemplateHandler instance for testing."""
-    return TemplateHandler()
+    template_path = Path(__file__).parent.parent / "assets"
+    env = Environment(loader=FileSystemLoader(str(template_path)))
+    template = env.get_template("email.md")
+    return TemplateHandler(template=template)
 
 
 TEST_CASES = [

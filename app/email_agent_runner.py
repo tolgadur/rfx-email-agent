@@ -1,5 +1,3 @@
-from dependency_injector.wiring import Provide
-from app.containers import Container
 from app.email_handler import EmailHandler
 from app.excel_handler import ExcelHandler
 from app.pinecone_handler import PineconeHandler
@@ -17,13 +15,13 @@ class EmailAgentRunner:
 
     def __init__(
         self,
-        email_handler: EmailHandler = Provide[Container.email_handler],
-        excel_handler: ExcelHandler = Provide[Container.excel_handler],
-        pinecone_handler: PineconeHandler = Provide[Container.pinecone_handler],
-        template_handler: TemplateHandler = Provide[Container.template_handler],
-        db_handler: DatabaseHandler = Provide[Container.db_handler],
+        email_handler: EmailHandler,
+        excel_handler: ExcelHandler,
+        pinecone_handler: PineconeHandler,
+        template_handler: TemplateHandler,
+        db_handler: DatabaseHandler,
     ):
-        """Initialize with injected handlers.
+        """Initialize with handlers.
 
         Args:
             email_handler: Handler for email operations
