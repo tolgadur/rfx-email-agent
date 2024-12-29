@@ -1,6 +1,6 @@
 from app.email_handler import EmailHandler
 from app.excel_handler import ExcelHandler
-from app.pinecone_handler import PineconeHandler
+from app.rag_service import RAGService
 from app.template_handler import TemplateHandler
 from app.db_handler import DatabaseHandler
 
@@ -17,7 +17,7 @@ class EmailAgentRunner:
         self,
         email_handler: EmailHandler,
         excel_handler: ExcelHandler,
-        pinecone_handler: PineconeHandler,
+        rag_service: RAGService,
         template_handler: TemplateHandler,
         db_handler: DatabaseHandler,
     ):
@@ -26,13 +26,13 @@ class EmailAgentRunner:
         Args:
             email_handler: Handler for email operations
             excel_handler: Handler for Excel file processing
-            pinecone_handler: Handler for AI operations
+            rag_service: Service for RAG operations
             template_handler: Handler for email template rendering
             db_handler: Handler for database operations
         """
         self.email_handler = email_handler
         self.excel_handler = excel_handler
-        self.pinecone_handler = pinecone_handler
+        self.rag_service = rag_service
         self.template_handler = template_handler
         self.db_handler = db_handler
 
@@ -51,11 +51,12 @@ class EmailAgentRunner:
             return
 
         print("Starting email processing...")
-        for sender, subject, body, msg in self.email_handler.fetch_emails():
-            print(f"Processing email from {sender}: {subject}")
-            self._process_email(sender, subject, body, msg)
-
-        self.db_handler.close()
+        try:
+            for sender, subject, body, msg in self.email_handler.fetch_emails():
+                print(f"Processing email from {sender}: {subject}")
+                self._process_email(sender, subject, body, msg)
+        finally:
+            self.db_handler.close()
 
     def _process_email(self, sender: str, subject: str, body: str, msg):
         """Process a single email with its potential attachments.
@@ -67,7 +68,7 @@ class EmailAgentRunner:
             msg: The full email message object
         """
         # Get response for email body
-        body_response = self.pinecone_handler.send_message(body) if body.strip() else ""
+        body_response = self.rag_service.send_message(body) if body.strip() else ""
 
         # Process attachments
         summary, processed_files = self.excel_handler.process_excel_attachment(msg)

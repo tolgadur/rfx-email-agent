@@ -9,11 +9,11 @@ from app.excel_handler import ExcelHandler
 @pytest.fixture
 def excel_handler():
     """Create an ExcelHandler instance for testing."""
-    with patch("app.excel_handler.PineconeHandler") as mock_pinecone_cls:
-        mock_pinecone = mock_pinecone_cls.return_value
-        handler = ExcelHandler(pinecone_handler=mock_pinecone)
+    with patch("app.excel_handler.RAGService") as mock_rag_cls:
+        mock_rag = mock_rag_cls.return_value
+        handler = ExcelHandler(rag_service=mock_rag)
         # Store mock for easy access in tests
-        handler.mock_pinecone = mock_pinecone
+        handler.mock_rag = mock_rag
         yield handler
 
 
@@ -104,7 +104,7 @@ def test_process_questions_empty_df(excel_handler):
 
 def test_process_questions_with_data(excel_handler):
     """Test processing DataFrame with data."""
-    excel_handler.mock_pinecone.send_message.return_value = "Test answer"
+    excel_handler.mock_rag.send_message.return_value = "Test answer"
     df = pd.DataFrame({"Q1": ["Test question"]})
 
     result_df, message = excel_handler._process_questions(df)

@@ -1,104 +1,94 @@
-from typing import List, Dict
-from psycopg2.extras import Json
+from dataclasses import dataclass
+from typing import List
+from litellm import embedding
 from app.db_handler import DatabaseHandler
 
 
+@dataclass
+class DocumentMatch:
+    text: str
+    similarity: float
+    metadata: dict
+
+
 class VectorStore:
-    """Vector store for document embeddings."""
+    """Handles vector storage and similarity search using pgvector."""
 
     def __init__(self, db_handler: DatabaseHandler):
-        """Initialize the vector store with database handler.
+        """Initialize the vector store with a database handler.
 
         Args:
-            db_handler (DatabaseHandler): Database connection handler
+            db_handler: Database connection handler
         """
-        self.db = db_handler
+        self.db_handler = db_handler
 
-    def _generate_embedding(self, text: str) -> List[float]:
-        """Generate embedding for the given text.
-
-        This is a placeholder for your embedding model implementation.
-        """
-        raise NotImplementedError(
-            "Embedding generation not implemented. "
-            "Please implement with your chosen model."
-        )
-
-    def add_text(self, text: str, metadata: Dict) -> int:
-        """
-        Adds a document to the database by generating its embedding and storing it.
+    def add_text(self, text: str, metadata: dict = None) -> None:
+        """Add text to the vector store.
 
         Args:
-            text (str): The raw document text to be stored.
-            metadata (dict): Additional metadata (e.g., title, tags).
-
-        Returns:
-            int: The ID of the inserted document.
-
-        Raises:
-            Exception: If embedding generation or insertion fails.
+            text: The text to add
+            metadata: Optional metadata to store with the text
         """
-        embedding = self._generate_embedding(text)
-        return self.db.insert_returning_id(
+        if metadata is None:
+            metadata = {}
+
+        embedding_vector = self._generate_embedding(text)
+
+        self.db_handler.execute_write(
             """
             INSERT INTO documents (text, embedding, metadata)
             VALUES (%s, %s, %s)
-            RETURNING id
             """,
-            (text, embedding, Json(metadata)),
+            (text, embedding_vector, metadata),
         )
 
-    def query_embeddings(
-        self, query: str, similarity_threshold: float, top_k: int = 5
-    ) -> List[Dict]:
-        """
-        Finds documents similar to the given query string.
+    def query_embeddings(self, query: str, limit: int = 5) -> List[DocumentMatch]:
+        """Find similar documents based on vector similarity.
 
         Args:
-            query (str): The plain English query to search for.
-            similarity_threshold (float): Minimum similarity score (0-1).
-            top_k (int): Number of top results to return.
+            query: The query text to find similar documents for
+            limit: Maximum number of results to return
 
         Returns:
-            list[dict]: A list of documents with metadata and similarity scores.
-
-        Raises:
-            Exception: If the query or database interaction fails.
+            List of DocumentMatch objects sorted by similarity (highest first)
         """
         query_embedding = self._generate_embedding(query)
-        rows = self.db.select_all(
+
+        results = self.db_handler.select_all(
             """
-            SELECT 
-                id,
-                text,
-                metadata,
-                1 - (embedding <=> %s) as similarity
+            SELECT text, metadata, 1 - (embedding <=> %s::vector) as similarity
             FROM documents
-            WHERE 1 - (embedding <=> %s) > %s
-            ORDER BY similarity DESC
+            ORDER BY embedding <=> %s::vector
             LIMIT %s
             """,
-            (query_embedding, query_embedding, similarity_threshold, top_k),
+            (query_embedding, query_embedding, limit),
         )
 
         return [
-            {
-                "id": row[0],
-                "text": row[1],
-                "metadata": row[2],
-                "similarity": row[3],
-            }
-            for row in rows
+            DocumentMatch(text=row[0], metadata=row[1], similarity=row[2])
+            for row in results
         ]
 
-    def delete_embedding(self, doc_id: int) -> None:
-        """
-        Deletes an embedding and its metadata from the database.
+    def delete_embedding(self, text: str) -> None:
+        """Delete a document from the vector store.
 
         Args:
-            doc_id (int): The ID of the document to delete.
-
-        Raises:
-            Exception: If deletion fails.
+            text: The text of the document to delete
         """
-        self.db.execute_write("DELETE FROM documents WHERE id = %s", (doc_id,))
+        self.db_handler.execute_write(
+            "DELETE FROM documents WHERE text = %s",
+            (text,),
+        )
+
+    def _generate_embedding(self, text: str) -> List[float]:
+        """Generate an embedding for the given text using OpenAI's API.
+
+        Args:
+            text: The text to generate an embedding for
+
+        Returns:
+            A list of floats representing the embedding
+        """
+        response = embedding(model="text-embedding-ada-002", input=[text])
+        # Response format is a dict with 'data' list containing embedding objects
+        return response["data"][0]["embedding"]

@@ -1,20 +1,20 @@
 import io
-from typing import List, Tuple, Dict, Optional
 import pandas as pd
 from email.message import Message
-from app.pinecone_handler import PineconeHandler
+from typing import List, Tuple, Dict, Optional
+from app.rag_service import RAGService
 
 
 class ExcelHandler:
     """Handles Excel file processing from email attachments."""
 
-    def __init__(self, pinecone_handler: PineconeHandler):
+    def __init__(self, rag_service: RAGService):
         """Initialize handlers.
 
         Args:
-            pinecone_handler: Handler for AI operations
+            rag_service: Service for RAG operations
         """
-        self.pinecone_handler = pinecone_handler
+        self.rag_service = rag_service
 
     def process_excel_attachment(
         self, msg: Message
@@ -89,9 +89,9 @@ class ExcelHandler:
         )
 
     def _get_answers(self, questions: pd.Series) -> pd.Series:
-        """Get answers for the given questions using the assistant."""
-        return questions.apply(
-            lambda q: self.pinecone_handler.send_message(q) if q else ""
+        """Get answers for the given questions using RAG."""
+        return pd.Series(
+            [self.rag_service.send_message(q) if q else "" for q in questions]
         )
 
     def _save_processed_dataframe(self, df: pd.DataFrame) -> io.BytesIO:

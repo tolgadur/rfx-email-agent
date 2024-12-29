@@ -1,26 +1,18 @@
 import os
-from dataclasses import dataclass
+from pathlib import Path
 
+# Base paths
+ROOT_DIR = Path(__file__).parent.parent
+ASSETS_DIR = ROOT_DIR / "assets"
 
-@dataclass
-class Config:
-    """Application configuration loaded from environment variables."""
+# Email settings
+EMAIL = os.environ["EMAIL"]
+PASSWORD = os.environ["PASSWORD"]
+IMAP_SERVER = os.environ.get("IMAP_SERVER", "imap.gmail.com")
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
 
-    email: str
-    password: str
-    database_url: str
-    pinecone_api_key: str
-    imap_server: str
-    smtp_server: str
+# Database settings
+DATABASE_URL = os.environ["DATABASE_URL"]
 
-    @classmethod
-    def from_env(self) -> "Config":
-        """Create config from environment variables."""
-        return self(
-            email=os.environ["EMAIL"],
-            password=os.environ["PASSWORD"],
-            database_url=os.environ["DATABASE_URL"],
-            pinecone_api_key=os.environ["PINECONE_API_KEY"],
-            imap_server=os.environ.get("IMAP_SERVER", "imap.gmail.com"),
-            smtp_server=os.environ.get("SMTP_SERVER", "smtp.gmail.com"),
-        )
+# RAG settings
+SIMILARITY_THRESHOLD = float(os.environ.get("SIMILARITY_THRESHOLD", "0.8"))
