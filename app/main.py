@@ -2,6 +2,7 @@ from app.email_handler import fetch_emails, send_email_response
 from app.excel_handler import process_excel_attachment, extract_excel_from_email
 from app.pinecone_handler import send_message_to_assistant
 from app.template_handler import render_email_template
+from app.db_handler import DatabaseHandler
 
 
 def process_email(sender: str, subject: str, body: str, msg):
@@ -40,10 +41,20 @@ def process_email(sender: str, subject: str, body: str, msg):
 
 
 def main():
+    print("Initializing database...")
+    db = DatabaseHandler()
+    try:
+        db.setup_database()
+    except Exception as e:
+        print(f"Failed to setup database: {e}")
+        return
+
     print("Starting email processing...")
     for sender, subject, body, msg in fetch_emails():
         print(f"Processing email from {sender}: {subject}")
         process_email(sender, subject, body, msg)
+
+    db.close()
 
 
 if __name__ == "__main__":

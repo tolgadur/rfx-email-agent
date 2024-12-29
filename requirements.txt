@@ -10,3 +10,4 @@ pytest
 pytest-mock
 pytest-email
 jinja2
+psycopg2-binary
