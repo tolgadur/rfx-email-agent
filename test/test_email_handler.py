@@ -2,14 +2,15 @@ import pytest
 from unittest.mock import patch, MagicMock
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
 from email.message import EmailMessage
 from io import BytesIO
-from app.email_handler import (
-    has_excel_attachment,
-    extract_body,
-    send_email_response,
-)
+from app.email_handler import EmailHandler
+
+
+@pytest.fixture
+def email_handler():
+    """Create an EmailHandler instance for testing."""
+    return EmailHandler()
 
 
 @pytest.fixture
@@ -29,41 +30,20 @@ def sample_multipart_message():
     return msg
 
 
-@pytest.mark.parametrize(
-    "filename,expected",
-    [
-        ("test.xlsx", True),
-        ("test.xls", True),
-        ("test.pdf", False),
-        ("test.txt", False),
-        ("", False),
-    ],
-)
-def test_has_excel_attachment_with_filename(filename, expected):
-    """Test Excel attachment detection with different filenames."""
-    msg = MIMEMultipart()
-    attachment = MIMEApplication(b"test content")
-    if filename:
-        attachment.add_header("Content-Disposition", "attachment", filename=filename)
-    msg.attach(attachment)
-
-    assert has_excel_attachment(msg) is expected
-
-
-def test_extract_body_simple(sample_email_message):
+def test_extract_body_simple(email_handler, sample_email_message):
     """Test body extraction from simple email."""
-    body = extract_body(sample_email_message)
+    body = email_handler._extract_body(sample_email_message)
     assert body.strip() == "Test body"
 
 
-def test_extract_body_multipart(sample_multipart_message):
+def test_extract_body_multipart(email_handler, sample_multipart_message):
     """Test body extraction from multipart email."""
-    body = extract_body(sample_multipart_message)
+    body = email_handler._extract_body(sample_multipart_message)
     assert body.strip() == "Test body"
 
 
 @patch("smtplib.SMTP")
-def test_send_email_response_without_attachments(mock_smtp):
+def test_send_email_response_without_attachments(mock_smtp, email_handler):
     """Test sending email response without attachments."""
     mock_smtp_instance = MagicMock()
     mock_smtp.return_value.__enter__.return_value = mock_smtp_instance
@@ -72,7 +52,7 @@ def test_send_email_response_without_attachments(mock_smtp):
     subject = "Test Subject"
     body = "Test Body"
 
-    send_email_response(to_email, subject, body)
+    email_handler.send_email_response(to_email, subject, body)
 
     mock_smtp_instance.starttls.assert_called_once()
     mock_smtp_instance.login.assert_called_once()
@@ -85,7 +65,7 @@ def test_send_email_response_without_attachments(mock_smtp):
 
 
 @patch("smtplib.SMTP")
-def test_send_email_response_with_attachments(mock_smtp):
+def test_send_email_response_with_attachments(mock_smtp, email_handler):
     """Test sending email response with attachments."""
     mock_smtp_instance = MagicMock()
     mock_smtp.return_value.__enter__.return_value = mock_smtp_instance
@@ -95,7 +75,7 @@ def test_send_email_response_with_attachments(mock_smtp):
     body = "Test Body"
     attachments = {"test.xlsx": BytesIO(b"test content")}
 
-    send_email_response(to_email, subject, body, attachments)
+    email_handler.send_email_response(to_email, subject, body, attachments)
 
     mock_smtp_instance.starttls.assert_called_once()
     mock_smtp_instance.login.assert_called_once()

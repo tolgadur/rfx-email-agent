@@ -2,92 +2,122 @@ import imaplib
 import email
 import smtplib
 import time
-from email.message import EmailMessage
+from email.message import EmailMessage, Message
+from typing import Generator, Tuple, Dict, Optional
+from io import BytesIO
 from app.config import IMAP_SERVER, SMTP_SERVER, EMAIL, PASSWORD
 
 
-def has_excel_attachment(msg: email.message.Message) -> bool:
-    for part in msg.walk():
-        if part.get_content_maintype() == "application":
-            filename = part.get_filename()
-            if filename and (filename.endswith(".xlsx") or filename.endswith(".xls")):
-                return True
-    return False
+class EmailHandler:
+    """Handles email operations including IMAP polling and SMTP sending."""
 
+    def __init__(self):
+        """Initialize the email handler with server configurations."""
+        self.imap_server = IMAP_SERVER
+        self.smtp_server = SMTP_SERVER
+        self.email = EMAIL
+        self.password = PASSWORD
 
-def fetch_emails():
-    print(f"IMAP_SERVER: {IMAP_SERVER}, EMAIL: {EMAIL}")
+    def fetch_emails(self) -> Generator[Tuple[str, str, str, Message], None, None]:
+        """Continuously fetch unread emails from the inbox.
 
-    while True:
-        try:
-            mail = imaplib.IMAP4_SSL(IMAP_SERVER, port=993)
-            mail.login(EMAIL, PASSWORD)
-            mail.select("inbox")
+        Yields:
+            Tuple containing (sender, subject, body, message object)
+        """
+        print(f"IMAP_SERVER: {self.imap_server}, EMAIL: {self.email}")
 
-            _, message_numbers = mail.search(None, "UNSEEN")
-            for num in message_numbers[0].split():
-                print(f"New email received: {num}")
-                _, msg_data = mail.fetch(num, "(RFC822)")
-                for response_part in msg_data:
-                    if isinstance(response_part, tuple) and len(response_part) > 1:
-                        msg = email.message_from_bytes(response_part[1])
-                        sender = msg["From"]
-                        subject = msg["Subject"]
-                        body = extract_body(msg)
+        while True:
+            try:
+                mail = imaplib.IMAP4_SSL(self.imap_server, port=993)
+                mail.login(self.email, self.password)
+                mail.select("inbox")
 
-                        print(f"Email received from {sender}.")
-                        yield sender, subject, body, msg
+                _, message_numbers = mail.search(None, "UNSEEN")
+                for num in message_numbers[0].split():
+                    print(f"New email received: {num}")
+                    _, msg_data = mail.fetch(num, "(RFC822)")
+                    for response_part in msg_data:
+                        if isinstance(response_part, tuple) and len(response_part) > 1:
+                            msg = email.message_from_bytes(response_part[1])
+                            sender = msg["From"]
+                            subject = msg["Subject"]
+                            body = self._extract_body(msg)
 
-            mail.logout()
-            time.sleep(30)
+                            print(f"Email received from {sender}.")
+                            yield sender, subject, body, msg
 
-        except Exception as e:
-            print(f"Connection error: {e}")
-            time.sleep(5)
-            continue
+                mail.logout()
+                time.sleep(30)
 
+            except Exception as e:
+                print(f"Connection error: {e}")
+                time.sleep(5)
+                continue
 
-def extract_body(msg: email.message.Message) -> str:
-    body = ""
-    if msg.is_multipart():
-        for part in msg.walk():
-            if part.get_content_type() == "text/plain":
-                try:
-                    body = part.get_payload(decode=True).decode("utf-8")
-                except UnicodeDecodeError:
-                    # Fallback to a different encoding if UTF-8 fails
-                    body = part.get_payload(decode=True).decode(
-                        "iso-8859-1", errors="ignore"
-                    )
-                break
-    else:
-        try:
-            body = msg.get_payload(decode=True).decode("utf-8")
-        except UnicodeDecodeError:
-            body = msg.get_payload(decode=True).decode("iso-8859-1", errors="ignore")
-    return body
+    def send_email_response(
+        self,
+        to_email: str,
+        subject: str,
+        body: str,
+        attachments: Optional[Dict[str, BytesIO]] = None,
+    ) -> None:
+        """Send an email response with optional attachments.
 
+        Args:
+            to_email: The recipient's email address.
+            subject: The email subject.
+            body: The email body text.
+            attachments: Optional dictionary of filename to file content mappings.
+        """
+        print("Sending email response...")
+        msg = EmailMessage()
+        msg["From"] = self.email
+        msg["To"] = to_email
+        msg["Subject"] = f"Re: {subject}"
+        msg.set_content(body)
 
-def send_email_response(to_email: str, subject: str, body: str, attachments=None):
-    print("Sending email response...")
-    msg = EmailMessage()
-    msg["From"] = EMAIL
-    msg["To"] = to_email
-    msg["Subject"] = f"Re: {subject}"
-    msg.set_content(body)
+        # Add attachments if present
+        if attachments:
+            for filename, attachment in attachments.items():
+                msg.add_attachment(
+                    attachment.getvalue(),
+                    maintype="application",
+                    subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    filename=filename,
+                )
 
-    # Add attachments if present
-    if attachments:
-        for filename, attachment in attachments.items():
-            msg.add_attachment(
-                attachment.getvalue(),
-                maintype="application",
-                subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                filename=filename,
-            )
+        with smtplib.SMTP(self.smtp_server, 587) as smtp:
+            smtp.starttls()
+            smtp.login(self.email, self.password)
+            smtp.send_message(msg)
+        print("Email sent successfully.")
 
-    with smtplib.SMTP(SMTP_SERVER, 587) as smtp:
-        smtp.starttls()
-        smtp.login(EMAIL, PASSWORD)
-        smtp.send_message(msg)
-    print("Email sent successfully.")
+    def _extract_body(self, msg: Message) -> str:
+        """Extract the text body from an email message.
+
+        Args:
+            msg: The email message to extract the body from.
+
+        Returns:
+            The extracted body text.
+        """
+        body = ""
+        if msg.is_multipart():
+            for part in msg.walk():
+                if part.get_content_type() == "text/plain":
+                    try:
+                        body = part.get_payload(decode=True).decode("utf-8")
+                    except UnicodeDecodeError:
+                        # Fallback to a different encoding if UTF-8 fails
+                        body = part.get_payload(decode=True).decode(
+                            "iso-8859-1", errors="ignore"
+                        )
+                    break
+        else:
+            try:
+                body = msg.get_payload(decode=True).decode("utf-8")
+            except UnicodeDecodeError:
+                body = msg.get_payload(decode=True).decode(
+                    "iso-8859-1", errors="ignore"
+                )
+        return body

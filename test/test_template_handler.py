@@ -1,6 +1,12 @@
 import pytest
 from pathlib import Path
-from app.template_handler import render_email_template
+from app.template_handler import TemplateHandler
+
+
+@pytest.fixture
+def template_handler():
+    """Create a TemplateHandler instance for testing."""
+    return TemplateHandler()
 
 
 TEST_CASES = [
@@ -83,8 +89,8 @@ INVALID_FILE_COUNTS = [
             "num_skipped_files": 0,
         },
         (
-            "Sum of processed (3), failed (1), and skipped (0) files (4) must match "
-            "num_attachments (5)"
+            "Sum of processed (3), failed (1), and skipped (0) files (4) "
+            "must match num_attachments (5)"
         ),
         "Total less than attachments",
     ),
@@ -96,8 +102,8 @@ INVALID_FILE_COUNTS = [
             "num_skipped_files": 1,
         },
         (
-            "Sum of processed (3), failed (2), and skipped (1) files (6) must match ",
-            "num_attachments (5)",
+            "Sum of processed (3), failed (2), and skipped (1) files (6) "
+            "must match num_attachments (5)"
         ),
         "Total more than attachments",
     ),
@@ -109,8 +115,8 @@ INVALID_FILE_COUNTS = [
             "num_skipped_files": 0,
         },
         (
-            "Sum of processed (1), failed (0), and skipped (0) files (1) must match ",
-            "num_attachments (0)",
+            "Sum of processed (1), failed (0), and skipped (0) files (1) "
+            "must match num_attachments (0)"
         ),
         "Files present with no attachments",
     ),
@@ -118,11 +124,9 @@ INVALID_FILE_COUNTS = [
 
 
 @pytest.mark.parametrize("test_input,expected_substrings,test_name", TEST_CASES)
-def test_render_email_template(test_input, expected_substrings, test_name):
-    """
-    Test template rendering with different inputs and verify both type and content.
-    """
-    result = render_email_template(**test_input)
+def test_render_template(template_handler, test_input, expected_substrings, test_name):
+    """Test template rendering with different inputs and verify both type and content."""
+    result = template_handler.render_template(**test_input)
 
     # Type check
     assert isinstance(result, str), f"Result not string on {test_name}"
@@ -130,42 +134,38 @@ def test_render_email_template(test_input, expected_substrings, test_name):
 
     # Content check
     for substring in expected_substrings:
-        assert (
-            str(substring) in result
-        ), f"'{substring}' not found in result on {test_name}"
+        msg = f"'{substring}' not found in result"
+        assert str(substring) in result, f"{msg} on {test_name}"
 
 
 @pytest.mark.parametrize("test_input,expected_error,test_name", INVALID_FILE_COUNTS)
-def test_invalid_file_counts(test_input, expected_error, test_name):
-    """
-    Test that appropriate error is raised when file counts don't match attachments.
-    """
+def test_invalid_file_counts(template_handler, test_input, expected_error, test_name):
+    """Test that appropriate error is raised when file counts don't match attachments."""
     with pytest.raises(ValueError) as exc_info:
-        render_email_template(**test_input)
+        template_handler.render_template(**test_input)
     if isinstance(expected_error, tuple):
         expected_error = "".join(expected_error)
-    assert (
-        str(exc_info.value) == expected_error
-    ), f"Unexpected error message on {test_name}"
+    msg = "Unexpected error message"
+    assert str(exc_info.value) == expected_error, f"{msg} on {test_name}"
 
 
-def test_empty_body_message():
+def test_empty_body_message(template_handler):
     """Test that appropriate message is shown when body is empty."""
-    result = render_email_template(body_response="")
+    result = template_handler.render_template(body_response="")
     assert isinstance(result, str)
     assert "We could not identify any technical questions in your email body." in result
 
 
-def test_no_attachments_message():
+def test_no_attachments_message(template_handler):
     """Test that appropriate message is shown when no attachments are present."""
-    result = render_email_template(num_attachments=0)
+    result = template_handler.render_template(num_attachments=0)
     assert isinstance(result, str)
     assert "We did not find any Excel files in your email." in result
 
 
-def test_empty_input():
+def test_empty_input(template_handler):
     """Test behavior with completely empty input."""
-    result = render_email_template()
+    result = template_handler.render_template()
     assert isinstance(result, str)
     assert "We could not identify any technical questions in your email body." in result
     assert "We did not find any Excel files in your email." in result

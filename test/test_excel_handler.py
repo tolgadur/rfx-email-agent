@@ -3,16 +3,17 @@ import io
 import pandas as pd
 from email.message import Message
 from unittest.mock import patch, MagicMock
-from app.excel_handler import (
-    is_excel_file,
-    create_skipped_file_entry,
-    create_concatenated_questions,
-    create_summary_message,
-    save_processed_dataframe,
-    process_attachment,
-    process_questions,
-    process_single_excel_file,
-)
+from app.excel_handler import ExcelHandler
+
+
+@pytest.fixture
+def excel_handler():
+    """Create an ExcelHandler instance for testing."""
+    with patch("app.excel_handler.PineconeHandler") as mock_pinecone_cls:
+        handler = ExcelHandler()
+        # Store mock for easy access in tests
+        handler.mock_pinecone = mock_pinecone_cls.return_value
+        yield handler
 
 
 @pytest.mark.parametrize(
@@ -25,22 +26,22 @@ from app.excel_handler import (
         ("", False),
     ],
 )
-def test_is_excel_file(filename, expected):
+def test_is_excel_file(excel_handler, filename, expected):
     """Test Excel file extension validation."""
-    assert is_excel_file(filename) is expected
+    assert excel_handler._is_excel_file(filename) is expected
 
 
-def test_create_skipped_file_entry():
+def test_create_skipped_file_entry(excel_handler):
     """Test creation of skipped file entries."""
     filename = "test.pdf"
-    result = create_skipped_file_entry(filename)
+    result = excel_handler._create_skipped_file_entry(filename)
     assert isinstance(result, tuple)
     assert len(result) == 2
     assert result[0] == filename
     assert "Unsupported file format" in result[1]
 
 
-def test_create_concatenated_questions():
+def test_create_concatenated_questions(excel_handler):
     """Test concatenation of DataFrame questions."""
     data = {
         "Q1": ["What is X?", "What is Y?"],
@@ -48,7 +49,7 @@ def test_create_concatenated_questions():
         "Q3": [None, "When is Y?"],
     }
     df = pd.DataFrame(data)
-    result = create_concatenated_questions(df)
+    result = excel_handler._create_concatenated_questions(df)
 
     assert len(result) == 2
     assert "What is X?" in result[0]
@@ -57,28 +58,12 @@ def test_create_concatenated_questions():
     assert "When is Y?" in result[1]
 
 
-def test_create_summary_message():
-    """Test creation of summary messages."""
-    results = ["File 'test1.xlsx' processed successfully", "File 'test2.xlsx' failed"]
-    message = create_summary_message(
-        total_files=3, success_count=1, failed_count=1, skipped_count=1, results=results
-    )
-
-    assert isinstance(message, str)
-    assert "Found 3 attachment(s)" in message
-    assert "Successfully processed: 1" in message
-    assert "Failed to process: 1" in message
-    assert "Skipped (non-Excel): 1" in message
-    for result in results:
-        assert result in message
-
-
-def test_save_processed_dataframe():
+def test_save_processed_dataframe(excel_handler):
     """Test saving DataFrame to bytes buffer."""
     data = {"Column1": [1, 2, 3], "Column2": ["A", "B", "C"]}
     df = pd.DataFrame(data)
 
-    output = save_processed_dataframe(df)
+    output = excel_handler._save_processed_dataframe(df)
     assert isinstance(output, io.BytesIO)
 
     # Verify the output can be read back as an Excel file
@@ -88,49 +73,48 @@ def test_save_processed_dataframe():
     assert result_df.values.tolist() == df.values.tolist()
 
 
-def test_process_attachment_excel():
+def test_process_attachment_excel(excel_handler):
     """Test processing Excel attachment."""
     part = MagicMock(spec=Message)
     part.get_payload.return_value = b"test content"
 
-    excel_file, skipped = process_attachment(part, "test.xlsx")
+    excel_file, skipped = excel_handler._process_attachment(part, "test.xlsx")
     assert isinstance(excel_file, io.BytesIO)
     assert skipped is None
 
 
-def test_process_attachment_non_excel():
+def test_process_attachment_non_excel(excel_handler):
     """Test processing non-Excel attachment."""
     part = MagicMock(spec=Message)
 
-    excel_file, skipped = process_attachment(part, "test.pdf")
+    excel_file, skipped = excel_handler._process_attachment(part, "test.pdf")
     assert excel_file is None
     assert isinstance(skipped, tuple)
     assert skipped[0] == "test.pdf"
 
 
-def test_process_questions_empty_df():
+def test_process_questions_empty_df(excel_handler):
     """Test processing empty DataFrame."""
     df = pd.DataFrame()
-    result_df, message = process_questions(df)
+    result_df, message = excel_handler._process_questions(df)
     assert result_df is None
     assert message == "Excel file is empty"
 
 
-@patch("app.excel_handler.send_message_to_assistant")
-def test_process_questions_with_data(mock_assistant):
+def test_process_questions_with_data(excel_handler):
     """Test processing DataFrame with data."""
-    mock_assistant.return_value = "Test answer"
+    excel_handler.mock_pinecone.send_message.return_value = "Test answer"
     df = pd.DataFrame({"Q1": ["Test question"]})
 
-    result_df, message = process_questions(df)
+    result_df, message = excel_handler._process_questions(df)
     assert isinstance(result_df, pd.DataFrame)
     assert "Answers" in result_df.columns
     assert "successfully" in message
 
 
-def test_process_single_excel_file_invalid():
+def test_process_single_excel_file_invalid(excel_handler):
     """Test processing invalid Excel file."""
     excel_file = io.BytesIO(b"invalid content")
-    output, message = process_single_excel_file(excel_file, "test.xlsx")
+    output, message = excel_handler._process_single_excel_file(excel_file, "test.xlsx")
     assert output is None
     assert isinstance(message, str)

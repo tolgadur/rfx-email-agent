@@ -2,25 +2,39 @@ from pinecone import Pinecone
 from pinecone_plugins.assistant.models.chat import Message
 from app.config import PINECONE_API_KEY
 
-pc = Pinecone(api_key=PINECONE_API_KEY, environment="gcp-starter")
 
-try:
-    ASSISTANT = pc.assistant.Assistant(assistant_name="email-assistant")
-    print(f"Assistant initialized successfully: {ASSISTANT}")
-except Exception as e:
-    print(f"Error initializing assistant: {e}")
-    raise
+class PineconeHandler:
+    """Handles interactions with Pinecone's AI assistant."""
 
+    def __init__(self):
+        """Initialize the Pinecone handler with API key and assistant."""
+        self.pc = Pinecone(api_key=PINECONE_API_KEY, environment="gcp-starter")
+        try:
+            self.assistant = self.pc.assistant.Assistant(
+                assistant_name="email-assistant"
+            )
+            print(f"Assistant initialized successfully: {self.assistant}")
+        except Exception as e:
+            print(f"Error initializing assistant: {e}")
+            raise
 
-def send_message_to_assistant(message: str):
-    if not message or message.strip() in ["", "\r\n"]:
-        return ""
+    def send_message(self, message: str) -> str:
+        """Send a message to the Pinecone assistant and get the response.
 
-    try:
-        msg = Message(role="user", content=message)
-        response = ASSISTANT.chat(messages=[msg])
-        return response.message.content
+        Args:
+            message: The message to send to the assistant.
 
-    except Exception as e:
-        print(f"Error sending message: {e}")
-        return ""
+        Returns:
+            The assistant's response as a string. Empty string if there's an error.
+        """
+        if not message or message.strip() in ["", "\r\n"]:
+            return ""
+
+        try:
+            msg = Message(role="user", content=message)
+            response = self.assistant.chat(messages=[msg])
+            return response.message.content
+
+        except Exception as e:
+            print(f"Error sending message: {e}")
+            return ""
