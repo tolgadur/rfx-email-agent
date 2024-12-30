@@ -12,7 +12,7 @@ from app.email_handler import EmailHandler
 from app.excel_handler import ExcelHandler
 from app.template_handler import TemplateHandler
 from app.db_handler import DatabaseHandler
-from app.vector_store import VectorStore
+from app.embeddings_dao import EmbeddingsDAO
 from app.rag_service import RAGService
 from app.email_agent_runner import EmailAgentRunner
 
@@ -21,9 +21,9 @@ def main() -> None:
     """Entry point of the application."""
     # Create infrastructure services
     db_handler = DatabaseHandler(database_url=DATABASE_URL)
-    vector_store = VectorStore(db_handler=db_handler)
+    embeddings_dao = EmbeddingsDAO(db_handler=db_handler)
     rag_service = RAGService(
-        vector_store=vector_store, similarity_threshold=SIMILARITY_THRESHOLD
+        embeddings_dao=embeddings_dao, similarity_threshold=SIMILARITY_THRESHOLD
     )
 
     email_handler = EmailHandler(

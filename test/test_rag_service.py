@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import MagicMock, Mock, ANY
 from app.rag_service import RAGService
-from app.vector_store import DocumentMatch
+from app.embeddings_dao import DocumentMatch
 
 
 @pytest.fixture
-def mock_vector_store():
-    """Create a mock vector store."""
+def mock_embeddings_dao():
+    """Create a mock embeddings DAO."""
     mock = MagicMock()
     return mock
 
@@ -21,21 +21,21 @@ def mock_litellm(monkeypatch):
 
 
 @pytest.fixture
-def rag_service(mock_vector_store):
-    """Create a RAGService instance with a mock vector store."""
-    return RAGService(vector_store=mock_vector_store)
+def rag_service(mock_embeddings_dao):
+    """Create a RAGService instance with a mock embeddings DAO."""
+    return RAGService(embeddings_dao=mock_embeddings_dao)
 
 
-def test_initialization(rag_service, mock_vector_store):
+def test_initialization(rag_service, mock_embeddings_dao):
     """Test RAGService initialization."""
-    assert rag_service.vector_store == mock_vector_store
+    assert rag_service.embeddings_dao == mock_embeddings_dao
     assert rag_service.similarity_threshold == 0.8
 
 
-def test_send_message_no_relevant_docs(rag_service, mock_vector_store, mock_litellm):
+def test_send_message_no_relevant_docs(rag_service, mock_embeddings_dao, mock_litellm):
     """Test sending a message with no relevant documents."""
     # Setup mock
-    mock_vector_store.query_embeddings.return_value = [
+    mock_embeddings_dao.query_embeddings.return_value = [
         DocumentMatch(text="Test doc", similarity=0.5, metadata={})
     ]
 
@@ -44,7 +44,7 @@ def test_send_message_no_relevant_docs(rag_service, mock_vector_store, mock_lite
 
     # Verify
     assert response == "Test response"
-    mock_vector_store.query_embeddings.assert_called_once_with("test query")
+    mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once_with(
         model="gpt-4-turbo",
         messages=[{"role": "user", "content": "test query"}],
@@ -52,10 +52,12 @@ def test_send_message_no_relevant_docs(rag_service, mock_vector_store, mock_lite
     )
 
 
-def test_send_message_with_relevant_docs(rag_service, mock_vector_store, mock_litellm):
+def test_send_message_with_relevant_docs(
+    rag_service, mock_embeddings_dao, mock_litellm
+):
     """Test sending a message with relevant documents."""
     # Setup mock
-    mock_vector_store.query_embeddings.return_value = [
+    mock_embeddings_dao.query_embeddings.return_value = [
         DocumentMatch(text="Relevant doc", similarity=0.9, metadata={})
     ]
 
@@ -64,18 +66,18 @@ def test_send_message_with_relevant_docs(rag_service, mock_vector_store, mock_li
 
     # Verify
     assert response == "Test response"
-    mock_vector_store.query_embeddings.assert_called_once_with("test query")
+    mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     # Verify the prompt includes the context
     assert "Relevant doc" in mock_litellm.call_args[1]["messages"][0]["content"]
 
 
 def test_send_message_multiple_relevant_docs(
-    rag_service, mock_vector_store, mock_litellm
+    rag_service, mock_embeddings_dao, mock_litellm
 ):
     """Test sending a message with multiple relevant documents."""
     # Setup mock
-    mock_vector_store.query_embeddings.return_value = [
+    mock_embeddings_dao.query_embeddings.return_value = [
         DocumentMatch(text="Doc 1", similarity=0.9, metadata={}),
         DocumentMatch(text="Doc 2", similarity=0.85, metadata={}),
     ]
@@ -85,7 +87,7 @@ def test_send_message_multiple_relevant_docs(
 
     # Verify
     assert response == "Test response"
-    mock_vector_store.query_embeddings.assert_called_once_with("test query")
+    mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     # Verify both documents are included in the context
     prompt = mock_litellm.call_args[1]["messages"][0]["content"]
@@ -93,13 +95,13 @@ def test_send_message_multiple_relevant_docs(
     assert "Doc 2" in prompt
 
 
-def test_send_message_custom_threshold(mock_vector_store, mock_litellm):
+def test_send_message_custom_threshold(mock_embeddings_dao, mock_litellm):
     """Test sending a message with a custom similarity threshold."""
     # Create service with custom threshold
-    service = RAGService(vector_store=mock_vector_store, similarity_threshold=0.7)
+    service = RAGService(embeddings_dao=mock_embeddings_dao, similarity_threshold=0.7)
 
     # Setup mock
-    mock_vector_store.query_embeddings.return_value = [
+    mock_embeddings_dao.query_embeddings.return_value = [
         DocumentMatch(text="Doc 1", similarity=0.75, metadata={}),
     ]
 
@@ -108,19 +110,19 @@ def test_send_message_custom_threshold(mock_vector_store, mock_litellm):
 
     # Verify
     assert response == "Test response"
-    mock_vector_store.query_embeddings.assert_called_once_with("test query")
+    mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     assert "Doc 1" in mock_litellm.call_args[1]["messages"][0]["content"]
 
 
-def test_send_message_empty_query(rag_service, mock_vector_store, mock_litellm):
+def test_send_message_empty_query(rag_service, mock_embeddings_dao, mock_litellm):
     """Test sending an empty message."""
     # Test
     response = rag_service.send_message("")
 
     # Verify
     assert response == "Test response"
-    mock_vector_store.query_embeddings.assert_called_once_with("")
+    mock_embeddings_dao.query_embeddings.assert_called_once_with("")
     mock_litellm.assert_called_once_with(
         model="gpt-4-turbo",
         messages=[{"role": "user", "content": ""}],

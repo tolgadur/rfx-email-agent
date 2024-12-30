@@ -11,7 +11,7 @@ class DocumentMatch:
     metadata: dict
 
 
-class VectorStore:
+class EmbeddingsDAO:
     """Handles vector storage and similarity search using pgvector."""
 
     def __init__(self, db_handler: DatabaseHandler):

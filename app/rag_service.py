@@ -1,19 +1,21 @@
 import os
 import litellm
-from app.vector_store import VectorStore
+from app.embeddings_dao import EmbeddingsDAO
 
 
 class RAGService:
     """Service for RAG (Retrieval Augmented Generation) operations."""
 
-    def __init__(self, vector_store: VectorStore, similarity_threshold: float = 0.8):
+    def __init__(
+        self, embeddings_dao: EmbeddingsDAO, similarity_threshold: float = 0.8
+    ):
         """Initialize the RAG service.
 
         Args:
-            vector_store: Vector store for similarity search
+            embeddings_dao: DAO for similarity search
             similarity_threshold: Minimum similarity score (0-1) for relevant documents
         """
-        self.vector_store = vector_store
+        self.embeddings_dao = embeddings_dao
         self.similarity_threshold = similarity_threshold
 
     def send_message(self, message: str) -> str:
@@ -26,7 +28,7 @@ class RAGService:
             The generated response
         """
         # Search for similar documents
-        matches = self.vector_store.query_embeddings(message)
+        matches = self.embeddings_dao.query_embeddings(message)
 
         # Filter matches by similarity threshold
         relevant_docs = [
