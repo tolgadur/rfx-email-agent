@@ -1,6 +1,14 @@
-import psycopg2
-from psycopg2.extensions import connection
-from typing import Optional, List, Union
+from typing import List
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+from app.models import Base, Document
+
+
+class DatabaseError(Exception):
+    """Base exception for database operations."""
+
+    pass
 
 
 class DatabaseHandler:
@@ -11,72 +19,82 @@ class DatabaseHandler:
             database_url: Database URL in format:
                 postgresql://user:password@host:port/database
         """
-        self.conn: Optional[connection] = None
-        self.database_url = database_url
+        # Ensure we use postgresql:// instead of postgres://
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-    def connect(self) -> None:
-        """Establish database connection"""
-        if not self.conn or self.conn.closed:
-            self.conn = psycopg2.connect(self.database_url)
-
-    def close(self) -> None:
-        """Close database connection"""
-        if self.conn and not self.conn.closed:
-            self.conn.close()
-
-    def setup_database(self) -> None:
-        """Initialize database with schema and seed data"""
         try:
-            # Execute schema first
-            self._execute_sql_file("db/schema.sql")
-            # Then seeds
-            self._execute_sql_file("db/seeds.sql")
+            self.engine = create_engine(database_url)
+            self.SessionLocal = sessionmaker(
+                autocommit=False, autoflush=False, bind=self.engine
+            )
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"Failed to initialize database: {e}")
+
+    def setup_database(self, seed: bool = True) -> None:
+        """Initialize database schema and optionally seed with test data.
+
+        Args:
+            seed: Whether to seed the database with test data
+        """
+        try:
+            # Create vector extension first
+            with self.SessionLocal.begin() as session:
+                session.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+
+            # Then create tables
+            Base.metadata.create_all(bind=self.engine)
             print("Database setup completed successfully")
-        except Exception as e:
-            print(f"Error setting up database: {e}")
-            raise
 
-    def insert_returning_id(self, query: str, params: tuple) -> int:
-        """Execute INSERT query and return the ID"""
-        result = self._execute(query, params, fetch="one")
-        return result[0] if result else None
+            if seed:
+                self.seed_database()
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"Failed to setup database: {e}")
 
-    def select_all(self, query: str, params: tuple = None) -> List[tuple]:
-        """Execute SELECT query and return all results"""
-        return self._execute(query, params, fetch="all") or []
-
-    def execute_write(self, query: str, params: tuple = None) -> None:
-        """Execute write operation (INSERT/UPDATE/DELETE)"""
-        self._execute(query, params, fetch=None)
-    
-    def _execute_sql_file(self, file_path: str) -> None:
-        """Execute SQL commands from a file"""
+    def seed_database(self) -> None:
+        """Seed the database with test data if it's empty."""
         try:
-            self.connect()
-            with open(file_path, "r") as file:
-                sql = file.read()
-                with self.conn.cursor() as cursor:
-                    cursor.execute(sql)
-                self.conn.commit()
-        except Exception as e:
-            self.conn.rollback()
-            raise e
+            with self.SessionLocal.begin() as session:
+                # Check if we already have data
+                if session.query(Document).first() is not None:
+                    print("Database already contains data, skipping seed")
+                    return
 
-    def _execute(
-        self, query: str, params: tuple = None, fetch: str = "all"
-    ) -> Union[List[tuple], tuple, None]:
-        """Execute a query and return results based on fetch mode."""
-        try:
-            self.connect()
-            with self.conn.cursor() as cursor:
-                cursor.execute(query, params)
-                if cursor.description:  # If it's a SELECT query
-                    if fetch == "all":
-                        return cursor.fetchall()
-                    elif fetch == "one":
-                        return cursor.fetchone()
-                self.conn.commit()
-                return None
-        except Exception as e:
-            self.conn.rollback()
-            raise e
+                # Add test documents
+                test_docs = [
+                    Document(
+                        text="How to make a delicious pasta carbonara",
+                        embedding=self._create_test_embedding(),
+                        document_metadata={
+                            "type": "recipe",
+                            "cuisine": "italian",
+                            "difficulty": "medium",
+                        },
+                    ),
+                    # Add more test documents here as needed
+                ]
+
+                session.add_all(test_docs)
+                print("Database seeded successfully")
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"Failed to seed database: {e}")
+
+    def get_session(self):
+        """Get a database session.
+
+        Returns:
+            A SQLAlchemy session
+        """
+        return self.SessionLocal()
+
+    @staticmethod
+    def _create_test_embedding(dim: int = 1536) -> List[float]:
+        """Create a test embedding vector.
+
+        Args:
+            dim: Dimension of the embedding vector
+
+        Returns:
+            A list of floats representing a test embedding
+        """
+        return [0.1] * dim

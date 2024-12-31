@@ -45,7 +45,7 @@ class EmailAgentRunner:
         """
         print("Initializing database...")
         try:
-            self.db_handler.setup_database()
+            self.db_handler.setup_database(seed=True)
         except Exception as e:
             print(f"Failed to setup database: {e}")
             return

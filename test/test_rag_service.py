@@ -36,7 +36,7 @@ def test_send_message_no_relevant_docs(rag_service, mock_embeddings_dao, mock_li
     """Test sending a message with no relevant documents."""
     # Setup mock
     mock_embeddings_dao.query_embeddings.return_value = [
-        DocumentMatch(text="Test doc", similarity=0.5, metadata={})
+        DocumentMatch(text="Test doc", similarity=0.5, document_metadata={})
     ]
 
     # Test
@@ -58,7 +58,7 @@ def test_send_message_with_relevant_docs(
     """Test sending a message with relevant documents."""
     # Setup mock
     mock_embeddings_dao.query_embeddings.return_value = [
-        DocumentMatch(text="Relevant doc", similarity=0.9, metadata={})
+        DocumentMatch(text="Relevant doc", similarity=0.9, document_metadata={})
     ]
 
     # Test
@@ -78,8 +78,8 @@ def test_send_message_multiple_relevant_docs(
     """Test sending a message with multiple relevant documents."""
     # Setup mock
     mock_embeddings_dao.query_embeddings.return_value = [
-        DocumentMatch(text="Doc 1", similarity=0.9, metadata={}),
-        DocumentMatch(text="Doc 2", similarity=0.85, metadata={}),
+        DocumentMatch(text="Doc 1", similarity=0.9, document_metadata={}),
+        DocumentMatch(text="Doc 2", similarity=0.85, document_metadata={}),
     ]
 
     # Test
@@ -102,7 +102,7 @@ def test_send_message_custom_threshold(mock_embeddings_dao, mock_litellm):
 
     # Setup mock
     mock_embeddings_dao.query_embeddings.return_value = [
-        DocumentMatch(text="Doc 1", similarity=0.75, metadata={}),
+        DocumentMatch(text="Doc 1", similarity=0.75, document_metadata={}),
     ]
 
     # Test
