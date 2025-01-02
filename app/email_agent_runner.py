@@ -3,6 +3,7 @@ from app.excel_handler import ExcelHandler
 from app.rag_service import RAGService
 from app.template_handler import TemplateHandler
 from app.db_handler import DatabaseHandler
+from app.document_processor import DocumentProcessor
 
 
 class EmailAgentRunner:
@@ -20,21 +21,24 @@ class EmailAgentRunner:
         rag_service: RAGService,
         template_handler: TemplateHandler,
         db_handler: DatabaseHandler,
+        doc_processor: DocumentProcessor,
     ):
-        """Initialize with handlers.
+        """Initialize the runner with required handlers.
 
         Args:
             email_handler: Handler for email operations
-            excel_handler: Handler for Excel file processing
+            excel_handler: Handler for Excel file operations
             rag_service: Service for RAG operations
-            template_handler: Handler for email template rendering
+            template_handler: Handler for template rendering
             db_handler: Handler for database operations
+            doc_processor: Processor for document embeddings
         """
         self.email_handler = email_handler
         self.excel_handler = excel_handler
         self.rag_service = rag_service
         self.template_handler = template_handler
         self.db_handler = db_handler
+        self.doc_processor = doc_processor
 
     def run(self):
         """Main processing loop that continuously monitors for new emails.
@@ -45,7 +49,9 @@ class EmailAgentRunner:
         """
         print("Initializing database...")
         try:
-            self.db_handler.setup_database(seed=True)
+            self.db_handler.setup_database()
+            print("Processing documents...")
+            self.doc_processor.process_all_documents()
         except Exception as e:
             print(f"Failed to setup database: {e}")
             return

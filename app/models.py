@@ -39,3 +39,12 @@ class Document(Base):
             f"embedding={self.embedding}, document_metadata={self.document_metadata}, "
             f"created_at={self.created_at}, updated_at={self.updated_at})>"
         )
+
+
+class ProcessedDocument(Base):
+    """Model for tracking which documents have been processed."""
+
+    __tablename__ = "processed_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    filepath: Mapped[str] = mapped_column(String, nullable=False, unique=True)

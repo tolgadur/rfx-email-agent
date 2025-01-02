@@ -13,10 +13,7 @@ def db_handler():
     """Create a test database handler."""
     handler = DatabaseHandler("sqlite:///:memory:")
     # Override setup to skip PostgreSQL-specific operations
-    handler.setup_database = lambda seed=True: (
-        Base.metadata.create_all(bind=handler.engine),
-        handler.seed_database() if seed else None,
-    )[0]
+    handler.setup_database = lambda: Base.metadata.create_all(bind=handler.engine)
     return handler
 
 
@@ -34,7 +31,7 @@ def mock_embedding():
 
 def test_add_text(embeddings_dao, mock_embedding):
     """Test adding text to the vector store."""
-    embeddings_dao.db_handler.setup_database(seed=False)
+    embeddings_dao.db_handler.setup_database()
 
     with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
         embeddings_dao.add_text("Test document", document_metadata={"type": "test"})
@@ -50,7 +47,18 @@ def test_add_text(embeddings_dao, mock_embedding):
 @pytest.mark.skip(reason="Vector similarity search not supported in SQLite")
 def test_query_embeddings(embeddings_dao, mock_embedding):
     """Test querying similar documents."""
-    embeddings_dao.db_handler.setup_database(seed=True)  # Add seed data
+    embeddings_dao.db_handler.setup_database()
+
+    # Add a test document
+    with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
+        embeddings_dao.add_text(
+            "How to make a delicious pasta carbonara",
+            document_metadata={
+                "type": "recipe",
+                "cuisine": "italian",
+                "difficulty": "medium",
+            },
+        )
 
     with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
         results = embeddings_dao.query_embeddings("pasta recipe", limit=2)
@@ -68,10 +76,14 @@ def test_query_embeddings(embeddings_dao, mock_embedding):
 
 def test_delete_embedding(embeddings_dao, mock_embedding):
     """Test deleting documents by text."""
-    embeddings_dao.db_handler.setup_database(seed=True)
+    embeddings_dao.db_handler.setup_database()
 
-    # Delete the seed document
-    embeddings_dao.delete_embedding("How to make a delicious pasta carbonara")
+    # Add a test document
+    with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
+        embeddings_dao.add_text("Test document to delete")
+
+    # Delete the document
+    embeddings_dao.delete_embedding("Test document to delete")
 
     # Verify deletion
     with embeddings_dao.db_handler.get_session() as session:

@@ -8,6 +8,7 @@ from app.config import (
     SIMILARITY_THRESHOLD,
     ASSETS_DIR,
 )
+from app.document_processor import DocumentProcessor
 from app.email_handler import EmailHandler
 from app.excel_handler import ExcelHandler
 from app.template_handler import TemplateHandler
@@ -22,6 +23,8 @@ def main() -> None:
     # Create infrastructure services
     db_handler = DatabaseHandler(database_url=DATABASE_URL)
     embeddings_dao = EmbeddingsDAO(db_handler=db_handler)
+    doc_processor = DocumentProcessor(embeddings_dao=embeddings_dao)
+
     rag_service = RAGService(
         embeddings_dao=embeddings_dao, similarity_threshold=SIMILARITY_THRESHOLD
     )
@@ -50,6 +53,7 @@ def main() -> None:
         rag_service=rag_service,
         template_handler=template_handler,
         db_handler=db_handler,
+        doc_processor=doc_processor,
     )
     runner.run()
 
