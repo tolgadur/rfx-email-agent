@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import List
 from litellm import embedding
-from sqlalchemy import func
 from app.db_handler import DatabaseHandler
 from app.models import Document
 
@@ -70,25 +69,27 @@ class EmbeddingsDAO:
             query_embedding = self._generate_embedding(query)
 
             with self.db_handler.get_session() as session:
-                # Calculate cosine similarity using 1 - (embedding <=> query_vector)
-                similarity = 1 - func.cosine_distance(
-                    Document.embedding, query_embedding
-                )
-
+                # Use cosine distance directly with the <=> operator
+                # Lower distance means higher similarity
                 results = (
                     session.query(
                         Document.text,
                         Document.document_metadata,
-                        similarity.label("similarity"),
+                        Document.embedding.cosine_distance(query_embedding).label(
+                            "distance"
+                        ),
                     )
-                    .order_by(func.cosine_distance(Document.embedding, query_embedding))
+                    .order_by(Document.embedding.cosine_distance(query_embedding))
                     .limit(limit)
                     .all()
                 )
 
                 return [
                     DocumentMatch(
-                        text=row[0], document_metadata=row[1], similarity=row[2]
+                        text=row[0],
+                        document_metadata=row[1],
+                        # Convert distance to similarity score (1 - distance)
+                        similarity=float(1 - row[2]),
                     )
                     for row in results
                 ]
@@ -120,13 +121,14 @@ class EmbeddingsDAO:
             text: The text to generate an embedding for
 
         Returns:
-            A list of floats representing the embedding
+            A list of floats representing the embedding vector
 
         Raises:
             EmbeddingsError: If generating the embedding fails
         """
         try:
             response = embedding(model="text-embedding-ada-002", input=[text])
+            # Return as a simple list - pgvector will handle the conversion
             return response["data"][0]["embedding"]
         except Exception as e:
             raise EmbeddingsError(f"Failed to generate embedding: {e}")

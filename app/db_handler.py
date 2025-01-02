@@ -98,3 +98,8 @@ class DatabaseHandler:
             A list of floats representing a test embedding
         """
         return [0.1] * dim
+
+    def close(self) -> None:
+        """Close the database connection."""
+        if hasattr(self, "engine"):
+            self.engine.dispose()
