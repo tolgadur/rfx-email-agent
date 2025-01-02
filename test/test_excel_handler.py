@@ -119,3 +119,37 @@ def test_process_single_excel_file_invalid(excel_handler):
     output, message = excel_handler._process_single_excel_file(excel_file, "test.xlsx")
     assert output is None
     assert isinstance(message, str)
+
+
+def test_excel_with_similarity_scores(mocker):
+    """Test that Excel processing includes similarity scores."""
+    # Mock RAG service to return known responses and scores
+    mock_rag = mocker.Mock()
+    mock_rag.send_message.side_effect = [
+        ("Answer 1", 0.85),  # High similarity - should keep answer
+        ("Answer 2", 0.25),  # Low similarity - should be replaced
+        ("Answer 3", None),  # No similarity
+    ]
+
+    handler = ExcelHandler(mock_rag)
+
+    # Create test DataFrame
+    df = pd.DataFrame({"Question": ["Question 1", "Question 2", "Question 3"]})
+
+    # Process questions
+    processed_df, message = handler._process_questions(df)
+
+    # Verify results
+    assert "Similarity Score" in processed_df.columns
+    assert processed_df["Similarity Score"].tolist() == ["85.0%", "25.0%", "N/A"]
+
+    # Verify answers
+    answers = processed_df["Answers"].tolist()
+    assert answers[0] == "Answer 1"  # High similarity answer kept
+    assert (
+        answers[1] == "Not enough information to answer this question."
+    )  # Low similarity replaced
+    assert (
+        answers[2] == "Not enough information to answer this question."
+    )  # No similarity case
+    assert "successfully" in message

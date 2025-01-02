@@ -1,8 +1,9 @@
 import io
-import pandas as pd
 from email.message import Message
 from typing import List, Tuple, Dict, Optional
+import pandas as pd
 from app.rag_service import RAGService
+from app.config import MIN_SIMILARITY_TO_ANSWER
 
 
 class ExcelHandler:
@@ -88,11 +89,13 @@ class ExcelHandler:
             lambda row: "\n".join(str(val) for val in row if pd.notna(val)), axis=1
         )
 
-    def _get_answers(self, questions: pd.Series) -> pd.Series:
+    def _get_answers(self, questions: pd.Series) -> Tuple[pd.Series, pd.Series]:
         """Get answers for the given questions using RAG."""
-        return pd.Series(
-            [self.rag_service.send_message(q)[0] if q else "" for q in questions]
-        )
+        results = [
+            (self.rag_service.send_message(q) if q else ("", None)) for q in questions
+        ]
+        answers, scores = zip(*results) if results else ([], [])
+        return pd.Series(answers), pd.Series(scores)
 
     def _save_processed_dataframe(self, df: pd.DataFrame) -> io.BytesIO:
         """Save processed DataFrame to bytes buffer."""
@@ -150,7 +153,22 @@ class ExcelHandler:
 
             # Process questions and get answers
             questions = self._create_concatenated_questions(processed_df)
-            processed_df["Answers"] = self._get_answers(questions)
+            answers, scores = self._get_answers(questions)
+
+            answers = [
+                (
+                    answer
+                    if score is not None and score >= MIN_SIMILARITY_TO_ANSWER
+                    else "Not enough information to answer this question."
+                )
+                for answer, score in zip(answers, scores)
+            ]
+
+            processed_df["Answers"] = answers
+            processed_df["Similarity Score"] = [
+                f"{s * 100:.1f}%" if s is not None and not pd.isna(s) else "N/A"
+                for s in scores
+            ]
 
             if processed_df["Answers"].notna().any():
                 print("Successfully processed all questions")
