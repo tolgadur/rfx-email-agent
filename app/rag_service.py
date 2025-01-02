@@ -1,6 +1,7 @@
 import os
 import litellm
 from app.embeddings_dao import EmbeddingsDAO
+from app.config import MAX_TOKENS
 
 
 class RAGService:
@@ -35,20 +36,24 @@ class RAGService:
             match for match in matches if match.similarity >= self.similarity_threshold
         ]
 
+        # Construct prompt based on whether we have relevant context
         if not relevant_docs:
-            # No relevant context found, use base prompt
-            return self._generate_response(message)
-
-        # Construct context from relevant documents
-        context = "\n\n".join(match.text for match in relevant_docs)
-
-        # Construct prompt with context
-        prompt = (
-            "Use the following context to help answer the question. "
-            "If the context isn't relevant, you can ignore it and answer "
-            "based on your general knowledge.\n\n"
-            f"Context:\n{context}\n\nQuestion: {message}"
-        )
+            prompt = (
+                "Please provide a clear and concise response. "
+                "Be thorough but avoid unnecessary details.\n\n"
+                f"Question: {message}"
+            )
+        else:
+            # Construct context from relevant documents
+            context = "\n\n".join(match.text for match in relevant_docs)
+            prompt = (
+                "Please provide a clear and concise response. "
+                "Be thorough but avoid unnecessary details.\n\n"
+                "Use the following context to help answer the question. "
+                "If the context isn't relevant, you can ignore it and answer "
+                "based on your general knowledge.\n\n"
+                f"Context:\n{context}\n\nQuestion: {message}"
+            )
 
         return self._generate_response(prompt)
 
@@ -65,5 +70,6 @@ class RAGService:
             model="gpt-4-turbo",
             messages=[{"role": "user", "content": prompt}],
             api_key=os.getenv("OPENAI_API_KEY"),
+            max_tokens=MAX_TOKENS,
         )
         return response.choices[0].message.content

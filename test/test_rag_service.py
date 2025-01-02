@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, Mock, ANY
 from app.rag_service import RAGService
 from app.embeddings_dao import DocumentMatch
+from app.config import MAX_TOKENS
 
 
 @pytest.fixture
@@ -45,11 +46,15 @@ def test_send_message_no_relevant_docs(rag_service, mock_embeddings_dao, mock_li
     # Verify
     assert response == "Test response"
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
-    mock_litellm.assert_called_once_with(
-        model="gpt-4-turbo",
-        messages=[{"role": "user", "content": "test query"}],
-        api_key=ANY,
-    )
+    mock_litellm.assert_called_once()
+    call_args = mock_litellm.call_args[1]
+    assert call_args["model"] == "gpt-4-turbo"
+    assert call_args["api_key"] == ANY
+    assert call_args["max_tokens"] == MAX_TOKENS
+    prompt = call_args["messages"][0]["content"]
+    assert "Please provide a clear and concise response" in prompt
+    assert "Question: test query" in prompt
+    assert "Context:" not in prompt
 
 
 def test_send_message_with_relevant_docs(
@@ -68,8 +73,11 @@ def test_send_message_with_relevant_docs(
     assert response == "Test response"
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
-    # Verify the prompt includes the context
-    assert "Relevant doc" in mock_litellm.call_args[1]["messages"][0]["content"]
+    prompt = mock_litellm.call_args[1]["messages"][0]["content"]
+    assert "Please provide a clear and concise response" in prompt
+    assert "Context:" in prompt
+    assert "Relevant doc" in prompt
+    assert "Question: test query" in prompt
 
 
 def test_send_message_multiple_relevant_docs(
@@ -89,10 +97,12 @@ def test_send_message_multiple_relevant_docs(
     assert response == "Test response"
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
-    # Verify both documents are included in the context
     prompt = mock_litellm.call_args[1]["messages"][0]["content"]
+    assert "Please provide a clear and concise response" in prompt
+    assert "Context:" in prompt
     assert "Doc 1" in prompt
     assert "Doc 2" in prompt
+    assert "Question: test query" in prompt
 
 
 def test_send_message_custom_threshold(mock_embeddings_dao, mock_litellm):
@@ -112,7 +122,11 @@ def test_send_message_custom_threshold(mock_embeddings_dao, mock_litellm):
     assert response == "Test response"
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
-    assert "Doc 1" in mock_litellm.call_args[1]["messages"][0]["content"]
+    prompt = mock_litellm.call_args[1]["messages"][0]["content"]
+    assert "Please provide a clear and concise response" in prompt
+    assert "Context:" in prompt
+    assert "Doc 1" in prompt
+    assert "Question: test query" in prompt
 
 
 def test_send_message_empty_query(rag_service, mock_embeddings_dao, mock_litellm):
@@ -123,8 +137,12 @@ def test_send_message_empty_query(rag_service, mock_embeddings_dao, mock_litellm
     # Verify
     assert response == "Test response"
     mock_embeddings_dao.query_embeddings.assert_called_once_with("")
-    mock_litellm.assert_called_once_with(
-        model="gpt-4-turbo",
-        messages=[{"role": "user", "content": ""}],
-        api_key=ANY,
-    )
+    mock_litellm.assert_called_once()
+    call_args = mock_litellm.call_args[1]
+    assert call_args["model"] == "gpt-4-turbo"
+    assert call_args["api_key"] == ANY
+    assert call_args["max_tokens"] == MAX_TOKENS
+    prompt = call_args["messages"][0]["content"]
+    assert "Please provide a clear and concise response" in prompt
+    assert "Question: " in prompt
+    assert "Context:" not in prompt
