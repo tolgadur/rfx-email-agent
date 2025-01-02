@@ -34,8 +34,8 @@ def test_initialization(rag_service, mock_embeddings_dao):
 
 
 def test_send_message_no_relevant_docs(rag_service, mock_embeddings_dao, mock_litellm):
-    """Test sending a message with no relevant documents."""
-    # Setup mock
+    """Test sending a message with no relevant documents but above min similarity."""
+    # Setup mock with score above MIN_SIMILARITY_TO_ANSWER but below threshold
     mock_embeddings_dao.query_embeddings.return_value = [
         DocumentMatch(text="Test doc", similarity=0.5, document_metadata={})
     ]
@@ -45,7 +45,7 @@ def test_send_message_no_relevant_docs(rag_service, mock_embeddings_dao, mock_li
 
     # Verify
     assert response == "Test response"
-    assert similarity is None  # No docs above threshold
+    assert similarity == 0.5  # Should return the highest similarity score
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     call_args = mock_litellm.call_args[1]
@@ -135,19 +135,50 @@ def test_send_message_custom_threshold(mock_embeddings_dao, mock_litellm):
 
 def test_send_message_empty_query(rag_service, mock_embeddings_dao, mock_litellm):
     """Test sending an empty message."""
+    # Setup mock with empty result
+    mock_embeddings_dao.query_embeddings.return_value = []
+
     # Test
     response, similarity = rag_service.send_message("")
 
     # Verify
-    assert response == "Test response"
-    assert similarity is None  # No relevant docs for empty query
+    assert similarity is None  # No matches at all
+    assert "don't have enough relevant information" in response
     mock_embeddings_dao.query_embeddings.assert_called_once_with("")
-    mock_litellm.assert_called_once()
-    call_args = mock_litellm.call_args[1]
-    assert call_args["model"] == "gpt-4-turbo"
-    assert call_args["api_key"] == ANY
-    assert call_args["max_tokens"] == MAX_TOKENS
-    prompt = call_args["messages"][0]["content"]
-    assert "Please provide a clear and concise response" in prompt
-    assert "Question: " in prompt
-    assert "Context:" not in prompt
+    mock_litellm.assert_not_called()  # Should not generate response when no matches
+
+
+def test_send_message_below_min_similarity(
+    rag_service, mock_embeddings_dao, mock_litellm
+):
+    """Test sending a message where best match is below minimum similarity threshold."""
+    # Setup mock with a low similarity match
+    mock_embeddings_dao.query_embeddings.return_value = [
+        DocumentMatch(text="Test doc", similarity=0.2, document_metadata={})
+    ]
+
+    # Test
+    response, similarity = rag_service.send_message("test query")
+
+    # Verify
+    assert similarity == 0.2  # Should still return the similarity score
+    assert "don't have enough relevant information" in response
+    assert "rephrase your question" in response
+    mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
+    mock_litellm.assert_not_called()  # Should not generate response
+
+
+def test_send_message_no_matches(rag_service, mock_embeddings_dao, mock_litellm):
+    """Test sending a message with no matches at all."""
+    # Setup mock with no matches
+    mock_embeddings_dao.query_embeddings.return_value = []
+
+    # Test
+    response, similarity = rag_service.send_message("test query")
+
+    # Verify
+    assert similarity is None
+    assert "don't have enough relevant information" in response
+    assert "rephrase your question" in response
+    mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
+    mock_litellm.assert_not_called()  # Should not generate response

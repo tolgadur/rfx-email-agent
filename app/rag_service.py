@@ -1,7 +1,7 @@
 import os
 import litellm
 from app.embeddings_dao import EmbeddingsDAO
-from app.config import MAX_TOKENS
+from app.config import MAX_TOKENS, MIN_SIMILARITY_TO_ANSWER
 
 
 class RAGService:
@@ -33,15 +33,22 @@ class RAGService:
         # Search for similar documents
         matches = self.embeddings_dao.query_embeddings(message)
 
-        # Filter matches by similarity threshold
+        # Get highest similarity score from all matches
+        max_similarity = max(match.similarity for match in matches) if matches else None
+
+        # If we don't have any matches with sufficient similarity, decline to answer
+        if max_similarity is None or max_similarity < MIN_SIMILARITY_TO_ANSWER:
+            return (
+                "I apologize, but I don't have enough relevant information to provide "
+                "a reliable answer to your question. Could you please rephrase your "
+                "question or provide more context?",
+                max_similarity,
+            )
+
+        # Filter matches by similarity threshold for context
         relevant_docs = [
             match for match in matches if match.similarity >= self.similarity_threshold
         ]
-
-        # Get highest similarity score if we have relevant docs
-        max_similarity = (
-            max(match.similarity for match in relevant_docs) if relevant_docs else None
-        )
 
         # Construct prompt based on whether we have relevant context
         if not relevant_docs:

@@ -16,4 +16,5 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 
 # RAG settings
 SIMILARITY_THRESHOLD = float(os.environ.get("SIMILARITY_THRESHOLD", "0.8"))
+MIN_SIMILARITY_TO_ANSWER = float(os.environ.get("MIN_SIMILARITY_TO_ANSWER", "0.3"))
 MAX_TOKENS = int(os.environ.get("MAX_TOKENS", 300))

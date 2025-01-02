@@ -203,7 +203,7 @@ def test_render_template_with_similarity_score():
 
 
 def test_render_template_without_similarity_score():
-    """Test rendering template when no relevant docs found."""
+    """Test rendering template when response exists but no similarity score."""
     with open("assets/email.md") as f:
         template = Template(f.read())
     handler = TemplateHandler(template)
@@ -216,8 +216,8 @@ def test_render_template_without_similarity_score():
 
     assert "Test response" in result
     assert "similarity" not in result
-    assert NO_RELEVANT_INFO in result
-    assert "based on general knowledge" in result
+    assert "We identified one question" in result
+    assert NO_RELEVANT_INFO not in result
 
 
 def test_render_template_no_body_response():
@@ -235,3 +235,24 @@ def test_render_template_no_body_response():
     assert "could not identify any technical questions" in result
     assert "similarity" not in result
     assert "couldn't find any directly relevant information" not in result
+
+
+def test_render_template_low_similarity_response():
+    """Test rendering template with a low similarity response."""
+    with open("assets/email.md") as f:
+        template = Template(f.read())
+    handler = TemplateHandler(template)
+
+    result = handler.render_template(
+        body_response=(
+            "I apologize, but I don't have enough relevant information to provide "
+            "a reliable answer to your question."
+        ),
+        similarity_score=0.2,
+        num_attachments=0,
+    )
+
+    # Should only show the apology message without similarity score
+    assert "don't have enough relevant information" in result
+    assert "similarity" not in result
+    assert "We identified one question" not in result
