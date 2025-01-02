@@ -19,14 +19,16 @@ class RAGService:
         self.embeddings_dao = embeddings_dao
         self.similarity_threshold = similarity_threshold
 
-    def send_message(self, message: str) -> str:
+    def send_message(self, message: str) -> tuple[str, float | None]:
         """Process a message using RAG.
 
         Args:
             message: The user's message/query
 
         Returns:
-            The generated response
+            A tuple containing:
+            - response text (str)
+            - similarity score (float or None if no relevant docs found)
         """
         # Search for similar documents
         matches = self.embeddings_dao.query_embeddings(message)
@@ -35,6 +37,11 @@ class RAGService:
         relevant_docs = [
             match for match in matches if match.similarity >= self.similarity_threshold
         ]
+
+        # Get highest similarity score if we have relevant docs
+        max_similarity = (
+            max(match.similarity for match in relevant_docs) if relevant_docs else None
+        )
 
         # Construct prompt based on whether we have relevant context
         if not relevant_docs:
@@ -55,7 +62,7 @@ class RAGService:
                 f"Context:\n{context}\n\nQuestion: {message}"
             )
 
-        return self._generate_response(prompt)
+        return self._generate_response(prompt), max_similarity
 
     def _generate_response(self, prompt: str) -> str:
         """Generate a response using the language model.

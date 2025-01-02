@@ -41,10 +41,11 @@ def test_send_message_no_relevant_docs(rag_service, mock_embeddings_dao, mock_li
     ]
 
     # Test
-    response = rag_service.send_message("test query")
+    response, similarity = rag_service.send_message("test query")
 
     # Verify
     assert response == "Test response"
+    assert similarity is None  # No docs above threshold
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     call_args = mock_litellm.call_args[1]
@@ -67,10 +68,11 @@ def test_send_message_with_relevant_docs(
     ]
 
     # Test
-    response = rag_service.send_message("test query")
+    response, similarity = rag_service.send_message("test query")
 
     # Verify
     assert response == "Test response"
+    assert similarity == 0.9  # Highest similarity score
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     prompt = mock_litellm.call_args[1]["messages"][0]["content"]
@@ -91,10 +93,11 @@ def test_send_message_multiple_relevant_docs(
     ]
 
     # Test
-    response = rag_service.send_message("test query")
+    response, similarity = rag_service.send_message("test query")
 
     # Verify
     assert response == "Test response"
+    assert similarity == 0.9  # Should be the highest similarity score
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     prompt = mock_litellm.call_args[1]["messages"][0]["content"]
@@ -116,10 +119,11 @@ def test_send_message_custom_threshold(mock_embeddings_dao, mock_litellm):
     ]
 
     # Test
-    response = service.send_message("test query")
+    response, similarity = service.send_message("test query")
 
     # Verify
     assert response == "Test response"
+    assert similarity == 0.75  # Should be the similarity of the relevant doc
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     prompt = mock_litellm.call_args[1]["messages"][0]["content"]
@@ -132,10 +136,11 @@ def test_send_message_custom_threshold(mock_embeddings_dao, mock_litellm):
 def test_send_message_empty_query(rag_service, mock_embeddings_dao, mock_litellm):
     """Test sending an empty message."""
     # Test
-    response = rag_service.send_message("")
+    response, similarity = rag_service.send_message("")
 
     # Verify
     assert response == "Test response"
+    assert similarity is None  # No relevant docs for empty query
     mock_embeddings_dao.query_embeddings.assert_called_once_with("")
     mock_litellm.assert_called_once()
     call_args = mock_litellm.call_args[1]

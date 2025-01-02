@@ -3,6 +3,12 @@ Hello 👋,
 We identified one question in the body of your email. The response is as follows:  
 
 {{ body_response }}
+
+{% if similarity_score is not none %}
+Based on our knowledge base, we found relevant information with {{ "%.1f"|format(similarity_score * 100) }}% similarity to your question.
+{% else %}
+Note: We couldn't find any directly relevant information in our knowledge base for this question. The response is based on general knowledge.
+{% endif %}
 {% else %}
 We could not identify any technical questions in your email body.
 {% endif %}

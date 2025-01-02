@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, Template
 from app.template_handler import TemplateHandler
 
 
@@ -129,7 +129,7 @@ INVALID_FILE_COUNTS = [
 
 @pytest.mark.parametrize("test_input,expected_substrings,test_name", TEST_CASES)
 def test_render_template(template_handler, test_input, expected_substrings, test_name):
-    """Test template rendering with different inputs and verify both type and content."""
+    """Test template rendering with different inputs and verify type and content."""
     result = template_handler.render_template(**test_input)
 
     # Type check
@@ -144,7 +144,7 @@ def test_render_template(template_handler, test_input, expected_substrings, test
 
 @pytest.mark.parametrize("test_input,expected_error,test_name", INVALID_FILE_COUNTS)
 def test_invalid_file_counts(template_handler, test_input, expected_error, test_name):
-    """Test that appropriate error is raised when file counts don't match attachments."""
+    """Test that error is raised when file counts don't match attachments."""
     with pytest.raises(ValueError) as exc_info:
         template_handler.render_template(**test_input)
     if isinstance(expected_error, tuple):
@@ -179,3 +179,59 @@ def test_template_file_exists():
     """Test that the email template file exists."""
     template_path = Path(__file__).parent.parent / "assets" / "email.md"
     assert template_path.exists(), "Template file does not exist"
+
+
+# Test messages
+NO_RELEVANT_INFO = "couldn't find any directly relevant information"
+
+
+def test_render_template_with_similarity_score():
+    """Test rendering template with a similarity score."""
+    with open("assets/email.md") as f:
+        template = Template(f.read())
+    handler = TemplateHandler(template)
+
+    result = handler.render_template(
+        body_response="Test response",
+        similarity_score=0.85,
+        num_attachments=0,
+    )
+
+    assert "Test response" in result
+    assert "85.0% similarity" in result
+    assert NO_RELEVANT_INFO not in result
+
+
+def test_render_template_without_similarity_score():
+    """Test rendering template when no relevant docs found."""
+    with open("assets/email.md") as f:
+        template = Template(f.read())
+    handler = TemplateHandler(template)
+
+    result = handler.render_template(
+        body_response="Test response",
+        similarity_score=None,
+        num_attachments=0,
+    )
+
+    assert "Test response" in result
+    assert "similarity" not in result
+    assert NO_RELEVANT_INFO in result
+    assert "based on general knowledge" in result
+
+
+def test_render_template_no_body_response():
+    """Test rendering template with no body response."""
+    with open("assets/email.md") as f:
+        template = Template(f.read())
+    handler = TemplateHandler(template)
+
+    result = handler.render_template(
+        body_response="",
+        similarity_score=None,
+        num_attachments=0,
+    )
+
+    assert "could not identify any technical questions" in result
+    assert "similarity" not in result
+    assert "couldn't find any directly relevant information" not in result

@@ -104,7 +104,7 @@ def test_process_questions_empty_df(excel_handler):
 
 def test_process_questions_with_data(excel_handler):
     """Test processing DataFrame with data."""
-    excel_handler.mock_rag.send_message.return_value = "Test answer"
+    excel_handler.mock_rag.send_message.return_value = ("Test answer", None)
     df = pd.DataFrame({"Q1": ["Test question"]})
 
     result_df, message = excel_handler._process_questions(df)

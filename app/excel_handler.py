@@ -91,7 +91,7 @@ class ExcelHandler:
     def _get_answers(self, questions: pd.Series) -> pd.Series:
         """Get answers for the given questions using RAG."""
         return pd.Series(
-            [self.rag_service.send_message(q) if q else "" for q in questions]
+            [self.rag_service.send_message(q)[0] if q else "" for q in questions]
         )
 
     def _save_processed_dataframe(self, df: pd.DataFrame) -> io.BytesIO:
