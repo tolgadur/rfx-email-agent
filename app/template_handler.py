@@ -1,4 +1,5 @@
 from jinja2 import Template
+from typing import Optional
 
 
 class TemplateHandler:
@@ -15,7 +16,7 @@ class TemplateHandler:
     def render_template(
         self,
         body_response: str = "",
-        similarity_score: float | None = None,
+        similarity_score: Optional[float] = None,
         num_attachments: int = 0,
         num_processed_files: int = 0,
         num_failed_files: int = 0,
