@@ -40,18 +40,11 @@ class EmbeddingsDAO:
             EmbeddingsError: If adding the text fails
         """
         try:
-            if "processed_document_id" not in document_metadata:
-                raise ValueError(
-                    "processed_document_id is required in document_metadata"
-                )
-
-            processed_document_id = document_metadata.pop("processed_document_id")
             embedding_vector = self._generate_embedding(text)
             document = Document(
                 text=text,
                 embedding=embedding_vector,
                 document_metadata=document_metadata,
-                processed_document_id=processed_document_id,
             )
             with self.db_handler.get_session() as session:
                 session.add(document)
