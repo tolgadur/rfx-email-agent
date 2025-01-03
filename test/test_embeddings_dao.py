@@ -3,8 +3,8 @@
 # we're just testing the basic CRUD operations and API interactions.
 import pytest
 from unittest.mock import patch
-from app.embeddings_dao import EmbeddingsDAO, DocumentMatch
-from app.models import Document, Base
+from app.embeddings_dao import EmbeddingsDAO
+from app.models import Document, ProcessedDocument, Base
 from app.db_handler import DatabaseHandler
 
 
@@ -29,58 +29,47 @@ def mock_embedding():
     return {"data": [{"embedding": [0.1] * 1536}]}
 
 
-def test_add_text(embeddings_dao, mock_embedding):
-    """Test adding text to the vector store."""
+@pytest.fixture
+def processed_document_id(embeddings_dao):
+    """Create a test processed document and return its ID."""
     embeddings_dao.db_handler.setup_database()
+    with embeddings_dao.db_handler.get_session() as session:
+        doc = ProcessedDocument(filepath="test/file.txt")
+        session.add(doc)
+        session.commit()
+        return doc.id
 
+
+def test_add_text(embeddings_dao, mock_embedding, processed_document_id):
+    """Test adding text to the vector store."""
     with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
-        embeddings_dao.add_text("Test document", document_metadata={"type": "test"})
+        embeddings_dao.add_text(
+            "Test document",
+            document_metadata={
+                "type": "test",
+                "processed_document_id": processed_document_id,
+            },
+        )
 
     # Verify document was added
     with embeddings_dao.db_handler.get_session() as session:
         doc = session.query(Document).first()
         assert doc.text == "Test document"
         assert len(doc.embedding) == 1536
-        assert doc.document_metadata == {"type": "test"}
+        assert doc.document_metadata == {
+            "type": "test",
+        }
+        assert doc.processed_document_id == processed_document_id
 
 
-@pytest.mark.skip(reason="Vector similarity search not supported in SQLite")
-def test_query_embeddings(embeddings_dao, mock_embedding):
-    """Test querying similar documents."""
-    embeddings_dao.db_handler.setup_database()
-
+def test_delete_embedding(embeddings_dao, mock_embedding, processed_document_id):
+    """Test deleting documents by text."""
     # Add a test document
     with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
         embeddings_dao.add_text(
-            "How to make a delicious pasta carbonara",
-            document_metadata={
-                "type": "recipe",
-                "cuisine": "italian",
-                "difficulty": "medium",
-            },
+            "Test document to delete",
+            document_metadata={"processed_document_id": processed_document_id},
         )
-
-    with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
-        results = embeddings_dao.query_embeddings("pasta recipe", limit=2)
-
-    assert len(results) > 0
-    assert isinstance(results[0], DocumentMatch)
-    assert results[0].text == "How to make a delicious pasta carbonara"
-    assert isinstance(results[0].similarity, float)
-    assert results[0].document_metadata == {
-        "type": "recipe",
-        "cuisine": "italian",
-        "difficulty": "medium",
-    }
-
-
-def test_delete_embedding(embeddings_dao, mock_embedding):
-    """Test deleting documents by text."""
-    embeddings_dao.db_handler.setup_database()
-
-    # Add a test document
-    with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
-        embeddings_dao.add_text("Test document to delete")
 
     # Delete the document
     embeddings_dao.delete_embedding("Test document to delete")
