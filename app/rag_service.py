@@ -1,7 +1,15 @@
 import os
 import litellm
+from dataclasses import dataclass
+from typing import Optional
 from app.embeddings_dao import EmbeddingsDAO
 from app.config import MAX_TOKENS, MIN_SIMILARITY_TO_ANSWER
+
+
+@dataclass
+class RAGResponse:
+    text: str
+    max_similarity: Optional[float] = None
 
 
 class RAGService:
@@ -19,16 +27,14 @@ class RAGService:
         self.embeddings_dao = embeddings_dao
         self.similarity_threshold = similarity_threshold
 
-    def send_message(self, message: str) -> tuple[str, float | None]:
+    def send_message(self, message: str) -> RAGResponse:
         """Process a message using RAG.
 
         Args:
             message: The user's message/query
 
         Returns:
-            A tuple containing:
-            - response text (str)
-            - similarity score (float or None if no relevant docs found)
+            RAGResponse containing the response text and similarity score
         """
         # Search for similar documents
         matches = self.embeddings_dao.query_embeddings(message)
@@ -38,11 +44,11 @@ class RAGService:
 
         # If we don't have any matches with sufficient similarity, decline to answer
         if max_similarity is None or max_similarity < MIN_SIMILARITY_TO_ANSWER:
-            return (
-                "I apologize, but I don't have enough relevant information to provide "
-                "a reliable answer to your question. Could you please rephrase your "
-                "question or provide more context?",
-                max_similarity,
+            return RAGResponse(
+                text="I apologize, but I don't have enough relevant information to "
+                "provide a reliable answer to your question. Could you please "
+                "rephrase your question or provide more context?",
+                max_similarity=max_similarity,
             )
 
         # Filter matches by similarity threshold for context
@@ -69,7 +75,10 @@ class RAGService:
                 f"Context:\n{context}\n\nQuestion: {message}"
             )
 
-        return self._generate_response(prompt), max_similarity
+        return RAGResponse(
+            text=self._generate_response(prompt),
+            max_similarity=max_similarity,
+        )
 
     def _generate_response(self, prompt: str) -> str:
         """Generate a response using the language model.

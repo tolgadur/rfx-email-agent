@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, Mock, ANY
-from app.rag_service import RAGService
+from app.rag_service import RAGService, RAGResponse
 from app.embeddings_dao import DocumentMatch
 from app.config import MAX_TOKENS
 
@@ -41,11 +41,12 @@ def test_send_message_no_relevant_docs(rag_service, mock_embeddings_dao, mock_li
     ]
 
     # Test
-    response, similarity = rag_service.send_message("test query")
+    response = rag_service.send_message("test query")
 
     # Verify
-    assert response == "Test response"
-    assert similarity == 0.5  # Should return the highest similarity score
+    assert isinstance(response, RAGResponse)
+    assert response.text == "Test response"
+    assert response.max_similarity == 0.5  # Should return the highest similarity score
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     call_args = mock_litellm.call_args[1]
@@ -68,11 +69,12 @@ def test_send_message_with_relevant_docs(
     ]
 
     # Test
-    response, similarity = rag_service.send_message("test query")
+    response = rag_service.send_message("test query")
 
     # Verify
-    assert response == "Test response"
-    assert similarity == 0.9  # Highest similarity score
+    assert isinstance(response, RAGResponse)
+    assert response.text == "Test response"
+    assert response.max_similarity == 0.9  # Highest similarity score
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     prompt = mock_litellm.call_args[1]["messages"][0]["content"]
@@ -93,11 +95,12 @@ def test_send_message_multiple_relevant_docs(
     ]
 
     # Test
-    response, similarity = rag_service.send_message("test query")
+    response = rag_service.send_message("test query")
 
     # Verify
-    assert response == "Test response"
-    assert similarity == 0.9  # Should be the highest similarity score
+    assert isinstance(response, RAGResponse)
+    assert response.text == "Test response"
+    assert response.max_similarity == 0.9  # Should be the highest similarity score
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     prompt = mock_litellm.call_args[1]["messages"][0]["content"]
@@ -119,11 +122,14 @@ def test_send_message_custom_threshold(mock_embeddings_dao, mock_litellm):
     ]
 
     # Test
-    response, similarity = service.send_message("test query")
+    response = service.send_message("test query")
 
     # Verify
-    assert response == "Test response"
-    assert similarity == 0.75  # Should be the similarity of the relevant doc
+    assert isinstance(response, RAGResponse)
+    assert response.text == "Test response"
+    assert (
+        response.max_similarity == 0.75
+    )  # Should be the similarity of the relevant doc
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_called_once()
     prompt = mock_litellm.call_args[1]["messages"][0]["content"]
@@ -139,11 +145,12 @@ def test_send_message_empty_query(rag_service, mock_embeddings_dao, mock_litellm
     mock_embeddings_dao.query_embeddings.return_value = []
 
     # Test
-    response, similarity = rag_service.send_message("")
+    response = rag_service.send_message("")
 
     # Verify
-    assert similarity is None  # No matches at all
-    assert "don't have enough relevant information" in response
+    assert isinstance(response, RAGResponse)
+    assert response.max_similarity is None  # No matches at all
+    assert "don't have enough relevant information" in response.text
     mock_embeddings_dao.query_embeddings.assert_called_once_with("")
     mock_litellm.assert_not_called()  # Should not generate response when no matches
 
@@ -158,12 +165,13 @@ def test_send_message_below_min_similarity(
     ]
 
     # Test
-    response, similarity = rag_service.send_message("test query")
+    response = rag_service.send_message("test query")
 
     # Verify
-    assert similarity == 0.2  # Should still return the similarity score
-    assert "don't have enough relevant information" in response
-    assert "rephrase your question" in response
+    assert isinstance(response, RAGResponse)
+    assert response.max_similarity == 0.2  # Should still return the similarity score
+    assert "don't have enough relevant information" in response.text
+    assert "rephrase your question" in response.text
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_not_called()  # Should not generate response
 
@@ -174,11 +182,12 @@ def test_send_message_no_matches(rag_service, mock_embeddings_dao, mock_litellm)
     mock_embeddings_dao.query_embeddings.return_value = []
 
     # Test
-    response, similarity = rag_service.send_message("test query")
+    response = rag_service.send_message("test query")
 
     # Verify
-    assert similarity is None
-    assert "don't have enough relevant information" in response
-    assert "rephrase your question" in response
+    assert isinstance(response, RAGResponse)
+    assert response.max_similarity is None
+    assert "don't have enough relevant information" in response.text
+    assert "rephrase your question" in response.text
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
     mock_litellm.assert_not_called()  # Should not generate response

@@ -1,6 +1,6 @@
 from app.email_handler import EmailHandler
 from app.excel_handler import ExcelHandler
-from app.rag_service import RAGService
+from app.rag_service import RAGService, RAGResponse
 from app.template_handler import TemplateHandler
 from app.db_handler import DatabaseHandler
 from app.document_processor import DocumentProcessor
@@ -74,8 +74,10 @@ class EmailAgentRunner:
             msg: The full email message object
         """
         # Get response for email body
-        body_response, similarity_score = (
-            self.rag_service.send_message(body) if body.strip() else ("", None)
+        rag_response: RAGResponse = (
+            self.rag_service.send_message(body)
+            if body.strip()
+            else RAGResponse("", None)
         )
 
         # Process attachments
@@ -90,8 +92,8 @@ class EmailAgentRunner:
 
         # Render email template
         email_body = self.template_handler.render_template(
-            body_response=body_response,
-            similarity_score=similarity_score,
+            body_response=rag_response.text,
+            similarity_score=rag_response.max_similarity,
             num_attachments=num_attachments,
             num_processed_files=num_processed_files,
             num_failed_files=num_failed_files,
