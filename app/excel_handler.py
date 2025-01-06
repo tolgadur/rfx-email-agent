@@ -2,7 +2,7 @@ import io
 from email.message import Message
 from typing import List, Tuple, Dict, Optional
 import pandas as pd
-from app.rag_service import RAGService
+from app.rag_service import RAGService, RAGResponse
 from app.config import MIN_SIMILARITY_TO_ANSWER
 
 
@@ -92,9 +92,11 @@ class ExcelHandler:
     def _get_answers(self, questions: pd.Series) -> Tuple[pd.Series, pd.Series]:
         """Get answers for the given questions using RAG."""
         results = [
-            (self.rag_service.send_message(q) if q else ("", None)) for q in questions
+            self.rag_service.send_message(q) if q else RAGResponse("", None)
+            for q in questions
         ]
-        answers, scores = zip(*results) if results else ([], [])
+        answers = [r.text for r in results]
+        scores = [r.max_similarity for r in results]
         return pd.Series(answers), pd.Series(scores)
 
     def _save_processed_dataframe(self, df: pd.DataFrame) -> io.BytesIO:

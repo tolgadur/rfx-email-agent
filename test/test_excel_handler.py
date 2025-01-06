@@ -4,6 +4,7 @@ import pandas as pd
 from email.message import Message
 from unittest.mock import patch, MagicMock
 from app.excel_handler import ExcelHandler
+from app.rag_service import RAGResponse
 
 
 @pytest.fixture
@@ -104,7 +105,7 @@ def test_process_questions_empty_df(excel_handler):
 
 def test_process_questions_with_data(excel_handler):
     """Test processing DataFrame with data."""
-    excel_handler.mock_rag.send_message.return_value = ("Test answer", None)
+    excel_handler.mock_rag.send_message.return_value = RAGResponse("Test answer", 0.8)
     df = pd.DataFrame({"Q1": ["Test question"]})
 
     result_df, message = excel_handler._process_questions(df)
@@ -121,14 +122,35 @@ def test_process_single_excel_file_invalid(excel_handler):
     assert isinstance(message, str)
 
 
+def test_get_answers_with_rag_response(excel_handler):
+    """Test that _get_answers properly handles RAGResponse objects."""
+    # Create a DataFrame with test questions
+    questions = pd.Series(["Question 1", "Question 2"])
+
+    # Mock the RAG service to return RAGResponse objects
+    excel_handler.mock_rag.send_message.side_effect = [
+        RAGResponse("Answer 1", 0.8),
+        RAGResponse("Answer 2", 0.6),
+    ]
+
+    # Get answers and scores
+    answers, scores = excel_handler._get_answers(questions)
+
+    # Verify the results
+    assert isinstance(answers, pd.Series)
+    assert isinstance(scores, pd.Series)
+    assert answers.tolist() == ["Answer 1", "Answer 2"]
+    assert scores.tolist() == [0.8, 0.6]
+
+
 def test_excel_with_similarity_scores(mocker):
     """Test that Excel processing includes similarity scores."""
     # Mock RAG service to return known responses and scores
     mock_rag = mocker.Mock()
     mock_rag.send_message.side_effect = [
-        ("Answer 1", 0.85),  # High similarity - should keep answer
-        ("Answer 2", 0.25),  # Low similarity - should be replaced
-        ("Answer 3", None),  # No similarity
+        RAGResponse("Answer 1", 0.85),  # High similarity - should keep answer
+        RAGResponse("Answer 2", 0.25),  # Low similarity - should be replaced
+        RAGResponse("Answer 3", None),  # No similarity
     ]
 
     handler = ExcelHandler(mock_rag)
