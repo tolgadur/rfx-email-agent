@@ -8,9 +8,10 @@ Hello 👋,
 
 We identified one question in the body of your email. The response is as follows:  
 
-{{ body_response }}
+    {{ body_response }}
 
         {%- if similarity_score is not none %}
+
 Based on our knowledge base, we found relevant information with {{ "%.1f"|format(similarity_score * 100) }}% similarity to your question.
         {%- endif %}
     {%- endif %}
