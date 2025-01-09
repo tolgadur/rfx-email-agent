@@ -6,13 +6,13 @@ Hello 👋,
 {{ body_response }}
     {%- else %}
 
-We identified one question in the body of your email. The response is as follows:  
+{{ "We identified one question in the body of your email. **The response is as follows:**" | safe }}  
 
-    {{ body_response }}
+{{ body_response }}
 
         {%- if similarity_score is not none %}
-
-Based on our knowledge base, we found relevant information with {{ "%.1f"|format(similarity_score * 100) }}% similarity to your question.
+        
+{{ "Based on our knowledge base, we found relevant information with **" ~ "%.1f"|format(similarity_score * 100) ~ "% similarity** to your question." | safe }}
         {%- endif %}
     {%- endif %}
 {%- else %}

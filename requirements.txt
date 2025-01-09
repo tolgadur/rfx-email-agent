@@ -16,3 +16,4 @@ pgvector
 sqlalchemy>=2.0.0
 pypdf
 llama-index-core
+markdown

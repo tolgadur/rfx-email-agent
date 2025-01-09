@@ -5,6 +5,7 @@ import time
 from email.message import EmailMessage, Message
 from typing import Generator, Tuple, Dict, Optional
 from io import BytesIO
+import markdown
 
 
 class EmailHandler:
@@ -86,7 +87,13 @@ class EmailHandler:
         msg["From"] = self.email
         msg["To"] = to_email
         msg["Subject"] = f"Re: {subject}"
+
+        # Set plain text content first
         msg.set_content(body)
+
+        # Then add HTML version
+        html_content = markdown.markdown(body)
+        msg.add_alternative(html_content, subtype="html")
 
         # Add attachments if present
         if attachments:

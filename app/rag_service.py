@@ -59,7 +59,7 @@ class RAGService:
         # Construct prompt based on whether we have relevant context
         if not relevant_docs:
             prompt = (
-                "Please provide a clear and concise response. "
+                "Please provide a clear and concise response under 300 characters. "
                 "Be thorough but avoid unnecessary details.\n\n"
                 f"Question: {message}"
             )
@@ -67,7 +67,7 @@ class RAGService:
             # Construct context from relevant documents
             context = "\n\n".join(match.text for match in relevant_docs)
             prompt = (
-                "Please provide a clear and concise response. "
+                "Please provide a clear and concise response under 300 characters. "
                 "Be thorough but avoid unnecessary details.\n\n"
                 "Use the following context to help answer the question. "
                 "If the context isn't relevant, you can ignore it and answer "
