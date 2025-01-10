@@ -33,15 +33,23 @@ class DatabaseHandler:
     def setup_database(self) -> None:
         """Initialize database schema."""
         try:
+            print("Setting up database...")
             # Create vector extension first
             with self.SessionLocal.begin() as session:
+                print("Creating vector extension...")
                 session.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                print("Vector extension created successfully")
 
             # Then create tables
+            print("Creating tables...")
             Base.metadata.create_all(bind=self.engine)
             print("Database setup completed successfully")
         except SQLAlchemyError as e:
+            print(f"Database setup failed: {e}")
             raise DatabaseError(f"Failed to setup database: {e}")
+        except Exception as e:
+            print(f"Unexpected error during database setup: {e}")
+            raise
 
     def get_session(self):
         """Get a database session.

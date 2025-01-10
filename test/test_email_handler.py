@@ -68,7 +68,15 @@ def test_send_email_response_without_attachments(mock_smtp, email_handler):
     sent_msg = mock_smtp_instance.send_message.call_args[0][0]
     assert sent_msg["To"] == to_email
     assert sent_msg["Subject"] == f"Re: {subject}"
-    assert sent_msg.get_content().strip() == body
+
+    # For multipart messages, check the plain text part
+    if sent_msg.is_multipart():
+        for part in sent_msg.walk():
+            if part.get_content_type() == "text/plain":
+                assert part.get_payload().strip() == body
+                break
+    else:
+        assert sent_msg.get_content().strip() == body
 
 
 @patch("smtplib.SMTP")

@@ -41,6 +41,8 @@ class EmbeddingsDAO:
         """
         try:
             embedding_vector = self._generate_embedding(text)
+            print(f"\nGenerated embedding for text: {text[:50]}...")
+            print(f"Embedding vector (first 5 values): {embedding_vector[:5]}")
             document = Document(
                 text=text,
                 embedding=embedding_vector,
@@ -69,8 +71,6 @@ class EmbeddingsDAO:
             query_embedding = self._generate_embedding(query)
 
             with self.db_handler.get_session() as session:
-                # Use cosine distance directly with the <=> operator
-                # Lower distance means higher similarity
                 results = (
                     session.query(
                         Document.text,
@@ -127,7 +127,7 @@ class EmbeddingsDAO:
             EmbeddingsError: If generating the embedding fails
         """
         try:
-            response = embedding(model="text-embedding-ada-002", input=[text])
+            response = embedding(model="text-embedding-3-small", input=[text])
             # Return as a simple list - pgvector will handle the conversion
             return response["data"][0]["embedding"]
         except Exception as e:

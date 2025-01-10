@@ -3,7 +3,7 @@
 # we're just testing the basic CRUD operations and API interactions.
 import pytest
 from unittest.mock import patch
-from app.embeddings_dao import EmbeddingsDAO, DocumentMatch
+from app.embeddings_dao import EmbeddingsDAO
 from app.models import Document, Base
 from app.db_handler import DatabaseHandler
 
@@ -44,36 +44,6 @@ def test_add_text(embeddings_dao, mock_embedding):
         assert doc.document_metadata == {"type": "test"}
 
 
-@pytest.mark.skip(reason="Vector similarity search not supported in SQLite")
-def test_query_embeddings(embeddings_dao, mock_embedding):
-    """Test querying similar documents."""
-    embeddings_dao.db_handler.setup_database()
-
-    # Add a test document
-    with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
-        embeddings_dao.add_text(
-            "How to make a delicious pasta carbonara",
-            document_metadata={
-                "type": "recipe",
-                "cuisine": "italian",
-                "difficulty": "medium",
-            },
-        )
-
-    with patch("app.embeddings_dao.embedding", return_value=mock_embedding):
-        results = embeddings_dao.query_embeddings("pasta recipe", limit=2)
-
-    assert len(results) > 0
-    assert isinstance(results[0], DocumentMatch)
-    assert results[0].text == "How to make a delicious pasta carbonara"
-    assert isinstance(results[0].similarity, float)
-    assert results[0].document_metadata == {
-        "type": "recipe",
-        "cuisine": "italian",
-        "difficulty": "medium",
-    }
-
-
 def test_delete_embedding(embeddings_dao, mock_embedding):
     """Test deleting documents by text."""
     embeddings_dao.db_handler.setup_database()
@@ -98,5 +68,5 @@ def test_generate_embedding(embeddings_dao, mock_embedding):
 
         assert len(embedding) == 1536
         mock.assert_called_once_with(
-            model="text-embedding-ada-002", input=["test text"]
+            model="text-embedding-3-small", input=["test text"]
         )

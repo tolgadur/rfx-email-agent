@@ -145,6 +145,9 @@ def test_get_answers_with_rag_response(excel_handler):
 
 def test_excel_with_similarity_scores(mocker):
     """Test that Excel processing includes similarity scores."""
+    # Mock the config threshold
+    mocker.patch("app.excel_handler.SIMILARITY_THRESHOLD", 0.5)
+
     # Mock RAG service to return known responses and scores
     mock_rag = mocker.Mock()
     mock_rag.send_message.side_effect = [

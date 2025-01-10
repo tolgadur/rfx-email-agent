@@ -21,7 +21,7 @@ class DocumentProcessor:
         self.docs_dir = Path(docs_dir)
         self.text_splitter = SentenceSplitter(
             chunk_size=1024,
-            chunk_overlap=20,
+            chunk_overlap=64,
             paragraph_separator="\n\n",
             secondary_chunking_regex="[^,.;]+[,.;]?",
         )
