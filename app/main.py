@@ -5,7 +5,6 @@ from app.config import (
     DATABASE_URL,
     IMAP_SERVER,
     SMTP_SERVER,
-    SIMILARITY_THRESHOLD,
     ASSETS_DIR,
 )
 from app.document_processor import DocumentProcessor
@@ -25,9 +24,7 @@ def main() -> None:
     embeddings_dao = EmbeddingsDAO(db_handler=db_handler)
     doc_processor = DocumentProcessor(embeddings_dao=embeddings_dao)
 
-    rag_service = RAGService(
-        embeddings_dao=embeddings_dao, similarity_threshold=SIMILARITY_THRESHOLD
-    )
+    rag_service = RAGService(embeddings_dao=embeddings_dao)
 
     email_handler = EmailHandler(
         email=EMAIL,

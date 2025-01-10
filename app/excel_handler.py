@@ -3,7 +3,7 @@ from email.message import Message
 from typing import List, Tuple, Dict, Optional
 import pandas as pd
 from app.rag_service import RAGService, RAGResponse
-from app.config import MIN_SIMILARITY_TO_ANSWER
+from app.config import SIMILARITY_THRESHOLD
 
 
 class ExcelHandler:
@@ -160,7 +160,7 @@ class ExcelHandler:
             answers = [
                 (
                     answer
-                    if score is not None and score >= MIN_SIMILARITY_TO_ANSWER
+                    if score is not None and score >= SIMILARITY_THRESHOLD
                     else "Not enough information to answer this question."
                 )
                 for answer, score in zip(answers, scores)

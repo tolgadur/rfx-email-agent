@@ -3,7 +3,7 @@ import litellm
 from dataclasses import dataclass
 from typing import Optional
 from app.embeddings_dao import EmbeddingsDAO
-from app.config import MAX_TOKENS, MIN_SIMILARITY_TO_ANSWER
+from app.config import MAX_TOKENS, SIMILARITY_THRESHOLD
 
 
 @dataclass
@@ -15,17 +15,13 @@ class RAGResponse:
 class RAGService:
     """Service for RAG (Retrieval Augmented Generation) operations."""
 
-    def __init__(
-        self, embeddings_dao: EmbeddingsDAO, similarity_threshold: float = 0.8
-    ):
+    def __init__(self, embeddings_dao: EmbeddingsDAO):
         """Initialize the RAG service.
 
         Args:
             embeddings_dao: DAO for similarity search
-            similarity_threshold: Minimum similarity score (0-1) for relevant documents
         """
         self.embeddings_dao = embeddings_dao
-        self.similarity_threshold = similarity_threshold
 
     def send_message(self, message: str) -> RAGResponse:
         """Process a message using RAG.
@@ -42,8 +38,13 @@ class RAGService:
         # Get highest similarity score from all matches
         max_similarity = max(match.similarity for match in matches) if matches else None
 
-        # If we don't have any matches with sufficient similarity, decline to answer
-        if max_similarity is None or max_similarity < MIN_SIMILARITY_TO_ANSWER:
+        # Filter matches by similarity threshold for context
+        relevant_docs = [
+            match for match in matches if match.similarity >= SIMILARITY_THRESHOLD
+        ]
+
+        # If no relevant docs found, return early
+        if not relevant_docs:
             return RAGResponse(
                 text="I apologize, but I don't have enough relevant information to "
                 "provide a reliable answer to your question. Could you please "
@@ -51,29 +52,16 @@ class RAGService:
                 max_similarity=max_similarity,
             )
 
-        # Filter matches by similarity threshold for context
-        relevant_docs = [
-            match for match in matches if match.similarity >= self.similarity_threshold
-        ]
-
-        # Construct prompt based on whether we have relevant context
-        if not relevant_docs:
-            prompt = (
-                "Please provide a clear and concise response under 300 characters. "
-                "Be thorough but avoid unnecessary details.\n\n"
-                f"Question: {message}"
-            )
-        else:
-            # Construct context from relevant documents
-            context = "\n\n".join(match.text for match in relevant_docs)
-            prompt = (
-                "Please provide a clear and concise response under 300 characters. "
-                "Be thorough but avoid unnecessary details.\n\n"
-                "Use the following context to help answer the question. "
-                "If the context isn't relevant, you can ignore it and answer "
-                "based on your general knowledge.\n\n"
-                f"Context:\n{context}\n\nQuestion: {message}"
-            )
+        # Construct context from relevant documents
+        context = "\n\n".join(match.text for match in relevant_docs)
+        prompt = (
+            "Please provide a clear and concise response under 300 characters. "
+            "Be thorough but avoid unnecessary details.\n\n"
+            "Use the following context to help answer the question. "
+            "If the context isn't relevant, you can ignore it and answer "
+            "based on your general knowledge.\n\n"
+            f"Context:\n{context}\n\nQuestion: {message}"
+        )
 
         return RAGResponse(
             text=self._generate_response(prompt),
