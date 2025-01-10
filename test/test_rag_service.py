@@ -48,7 +48,7 @@ def test_send_message_no_relevant_docs(rag_service, mock_embeddings_dao, mock_li
     assert "don't have enough relevant information" in response.text
     assert response.max_similarity == 0.4  # Should return the highest similarity score
     mock_embeddings_dao.query_embeddings.assert_called_once_with("test query")
-    mock_litellm.assert_not_called()  # Should not generate response when no relevant docs
+    mock_litellm.assert_not_called()
 
 
 def test_send_message_with_relevant_docs(

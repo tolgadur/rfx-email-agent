@@ -12,7 +12,7 @@ IMAP_SERVER = os.environ.get("IMAP_SERVER", "imap.gmail.com")
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
 
 # Database settings
-DATABASE_URL = os.environ["TEST_DATABASE_URL"]
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 # RAG settings
 # Minimum similarity threshold for both answering questions and including context
