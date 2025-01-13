@@ -12,7 +12,7 @@ Hello 👋,
 
         {%- if similarity_score is not none %}
         
-{{ "Based on our knowledge base, we found relevant information with **" ~ "%.1f"|format(similarity_score * 100) ~ "% similarity** to your question." | safe }}
+{{ "Based on our knowledge base, we found relevant information with a **cosine similarity score of " ~ "%.2f"|format(similarity_score) ~ "**. Cosine similarity ranges from -1 to 1, where 1 means identical semantic meaning, 0 means unrelated, and scores above 0.7 typically indicate strong semantic similarity." | safe }}
         {%- endif %}
     {%- endif %}
 {%- else %}
