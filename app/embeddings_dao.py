@@ -1,15 +1,17 @@
 from dataclasses import dataclass
 from typing import List
 from litellm import embedding
+from app.config import EMBEDDING_MODEL, SIMILARITY_THRESHOLD
 from app.db_handler import DatabaseHandler
-from app.models import Document
+from app.models import Embedding
 
 
 @dataclass
 class DocumentMatch:
     text: str
     similarity: float
-    document_metadata: dict
+    embedding_metadata: dict
+    document_id: int
 
 
 class EmbeddingsError(Exception):
@@ -29,28 +31,36 @@ class EmbeddingsDAO:
         """
         self.db_handler = db_handler
 
-    def add_text(self, text: str, document_metadata: dict = {}) -> None:
+    def add_text(
+        self, text: str, document_id: int, embedding_metadata: dict = {}, session=None
+    ) -> None:
         """Add text to the vector store.
 
         Args:
             text: The text to add
-            metadata: Optional metadata to store with the text
+            document_id: ID of the associated Document
+            embedding_metadata: Optional metadata to store with the text
+            session: Optional SQLAlchemy session to use. If not provided, creates a new.
 
         Raises:
             EmbeddingsError: If adding the text fails
         """
         try:
             embedding_vector = self._generate_embedding(text)
-            print(f"\nGenerated embedding for text: {text[:50]}...")
-            print(f"Embedding vector (first 5 values): {embedding_vector[:5]}")
-            document = Document(
+            embedding_obj = Embedding(
                 text=text,
                 embedding=embedding_vector,
-                document_metadata=document_metadata,
+                embedding_metadata=embedding_metadata,
+                document_id=document_id,
             )
-            with self.db_handler.get_session() as session:
-                session.add(document)
-                session.commit()
+
+            if session is None:
+                with self.db_handler.get_session() as session:
+                    session.add(embedding_obj)
+                    session.commit()
+            else:
+                session.add(embedding_obj)
+                # Let caller handle commit
         except Exception as e:
             raise EmbeddingsError(f"Failed to add text: {e}")
 
@@ -73,13 +83,17 @@ class EmbeddingsDAO:
             with self.db_handler.get_session() as session:
                 results = (
                     session.query(
-                        Document.text,
-                        Document.document_metadata,
-                        Document.embedding.cosine_distance(query_embedding).label(
-                            "distance"
-                        ),
+                        Embedding.text,
+                        Embedding.embedding_metadata,
+                        Embedding.document_id,
+                        (
+                            1 - Embedding.embedding.cosine_distance(query_embedding)
+                        ).label("similarity"),
                     )
-                    .order_by(Document.embedding.cosine_distance(query_embedding))
+                    .where(
+                        (1 - Embedding.embedding.cosine_distance(query_embedding))
+                        >= SIMILARITY_THRESHOLD
+                    )
                     .limit(limit)
                     .all()
                 )
@@ -87,9 +101,9 @@ class EmbeddingsDAO:
                 return [
                     DocumentMatch(
                         text=row[0],
-                        document_metadata=row[1],
-                        # Convert distance to similarity score (1 - distance)
-                        similarity=float(1 - row[2]),
+                        embedding_metadata=row[1],
+                        document_id=row[2],
+                        similarity=float(row[3]),
                     )
                     for row in results
                 ]
@@ -97,22 +111,24 @@ class EmbeddingsDAO:
             raise EmbeddingsError(f"Failed to query embeddings: {e}")
 
     def delete_embedding(self, text: str) -> None:
-        """Delete a document from the vector store.
+        """Delete an embedding from the vector store.
 
         Args:
-            text: The text of the document to delete
+            text: The text of the embedding to delete
 
         Raises:
-            EmbeddingsError: If deleting the document fails
+            EmbeddingsError: If deleting the embedding fails
         """
         try:
             with self.db_handler.get_session() as session:
-                doc = session.query(Document).filter(Document.text == text).first()
-                if doc:
-                    session.delete(doc)
+                embedding_obj = (
+                    session.query(Embedding).filter(Embedding.text == text).first()
+                )
+                if embedding_obj:
+                    session.delete(embedding_obj)
                     session.commit()
         except Exception as e:
-            raise EmbeddingsError(f"Failed to delete document: {e}")
+            raise EmbeddingsError(f"Failed to delete embedding: {e}")
 
     def _generate_embedding(self, text: str) -> List[float]:
         """Generate an embedding for the given text using OpenAI's API.
@@ -127,7 +143,7 @@ class EmbeddingsDAO:
             EmbeddingsError: If generating the embedding fails
         """
         try:
-            response = embedding(model="text-embedding-3-small", input=[text])
+            response = embedding(model=EMBEDDING_MODEL, input=[text])
             # Return as a simple list - pgvector will handle the conversion
             return response["data"][0]["embedding"]
         except Exception as e:
