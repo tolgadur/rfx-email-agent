@@ -1,14 +1,7 @@
-from dataclasses import dataclass
-from typing import Optional
 import litellm
 from app.config import MAX_TOKENS, MODEL_NAME
 from app.embeddings_dao import EmbeddingsDAO
-
-
-@dataclass
-class RAGResponse:
-    text: str
-    max_similarity: Optional[float]
+from app.types import RAGResponse
 
 
 class RAGService:
@@ -40,8 +33,8 @@ class RAGService:
             )
             return RAGResponse(text=no_match_msg, max_similarity=None)
 
-        # Get the highest similarity score
-        max_similarity = max(match.similarity for match in matches)
+        # Get the best match in a single pass
+        best_match = max(matches, key=lambda x: x.similarity)
 
         # Build context from relevant documents
         context = "\n\n".join(match.text for match in matches)
@@ -62,7 +55,8 @@ class RAGService:
 
         return RAGResponse(
             text=self._generate_response(messages),
-            max_similarity=max_similarity,
+            max_similarity=best_match.similarity,
+            document_url=best_match.document.url,
         )
 
     def _generate_response(self, messages: list) -> str:

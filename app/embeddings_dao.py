@@ -1,23 +1,9 @@
-from dataclasses import dataclass
 from typing import List
 from litellm import embedding
 from app.config import EMBEDDING_MODEL, SIMILARITY_THRESHOLD
 from app.db_handler import DatabaseHandler
-from app.models import Embedding
-
-
-@dataclass
-class DocumentMatch:
-    text: str
-    similarity: float
-    embedding_metadata: dict
-    document_id: int
-
-
-class EmbeddingsError(Exception):
-    """Base exception for embeddings operations."""
-
-    pass
+from app.models import Embedding, Document
+from app.types import DocumentMatch, EmbeddingsError
 
 
 class EmbeddingsDAO:
@@ -85,11 +71,12 @@ class EmbeddingsDAO:
                     session.query(
                         Embedding.text,
                         Embedding.embedding_metadata,
-                        Embedding.document_id,
+                        Document,
                         (
                             1 - Embedding.embedding.cosine_distance(query_embedding)
                         ).label("similarity"),
                     )
+                    .join(Document, Document.id == Embedding.document_id)
                     .where(
                         (1 - Embedding.embedding.cosine_distance(query_embedding))
                         >= SIMILARITY_THRESHOLD
@@ -102,7 +89,7 @@ class EmbeddingsDAO:
                     DocumentMatch(
                         text=row[0],
                         embedding_metadata=row[1],
-                        document_id=row[2],
+                        document=row[2],
                         similarity=float(row[3]),
                     )
                     for row in results

@@ -198,7 +198,8 @@ def test_render_template_with_similarity_score():
     )
 
     assert "Test response" in result
-    assert "85.0% similarity" in result
+    assert "0.85" in result
+    assert "cosine similarity" in result
     assert NO_RELEVANT_INFO not in result
 
 

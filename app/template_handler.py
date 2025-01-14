@@ -17,6 +17,7 @@ class TemplateHandler:
         self,
         body_response: str = "",
         similarity_score: Optional[float] = None,
+        document_url: Optional[str] = None,
         num_attachments: int = 0,
         num_processed_files: int = 0,
         num_failed_files: int = 0,
@@ -29,6 +30,7 @@ class TemplateHandler:
             body_response: The response to the email body
             similarity_score: Confidence score based on document similarity.
                 None if no relevant documents were found.
+            document_url: URL of the source document if available
             num_attachments: Total number of attachments
             num_processed_files: Number of successfully processed files
             num_failed_files: Number of files that failed processing
@@ -54,6 +56,7 @@ class TemplateHandler:
         return self.template.render(
             body_response=body_response,
             similarity_score=similarity_score,
+            document_url=document_url,
             num_attachments=num_attachments,
             num_processed_files=num_processed_files,
             num_failed_files=num_failed_files,

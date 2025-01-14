@@ -1,7 +1,15 @@
 import pytest
 from unittest.mock import MagicMock
-from app.rag_service import RAGService, RAGResponse
-from app.embeddings_dao import DocumentMatch
+from app.rag_service import RAGService
+from app.types import RAGResponse, DocumentMatch
+from app.models import Document
+
+
+@pytest.fixture
+def mock_document():
+    """Create a mock document."""
+    doc = Document(id=1, filepath="test.txt", processed=True)
+    return doc
 
 
 @pytest.fixture
@@ -48,13 +56,16 @@ def test_send_message_no_relevant_docs(rag_service, mock_embeddings_dao, mock_li
 
 
 def test_send_message_with_relevant_docs(
-    rag_service, mock_embeddings_dao, mock_litellm
+    rag_service, mock_embeddings_dao, mock_litellm, mock_document
 ):
     """Test sending a message with relevant documents."""
     # Setup mock with matches
     mock_embeddings_dao.query_embeddings.return_value = [
         DocumentMatch(
-            text="Relevant doc", similarity=0.7, embedding_metadata={}, document_id=1
+            text="Relevant doc",
+            similarity=0.7,
+            embedding_metadata={},
+            document=mock_document,
         )
     ]
 
@@ -81,16 +92,22 @@ def test_send_message_with_relevant_docs(
 
 
 def test_send_message_multiple_relevant_docs(
-    rag_service, mock_embeddings_dao, mock_litellm
+    rag_service, mock_embeddings_dao, mock_litellm, mock_document
 ):
     """Test sending a message with multiple relevant documents."""
     # Setup mock with multiple matches
     mock_embeddings_dao.query_embeddings.return_value = [
         DocumentMatch(
-            text="Doc 1", similarity=0.7, embedding_metadata={}, document_id=1
+            text="Doc 1",
+            similarity=0.7,
+            embedding_metadata={},
+            document=mock_document,
         ),
         DocumentMatch(
-            text="Doc 2", similarity=0.65, embedding_metadata={}, document_id=1
+            text="Doc 2",
+            similarity=0.65,
+            embedding_metadata={},
+            document=mock_document,
         ),
     ]
 
@@ -133,7 +150,9 @@ def test_send_message_empty_query(rag_service, mock_embeddings_dao, mock_litellm
     mock_litellm.assert_not_called()
 
 
-def test_send_message_unrelated_content(rag_service, mock_embeddings_dao, mock_litellm):
+def test_send_message_unrelated_content(
+    rag_service, mock_embeddings_dao, mock_litellm, mock_document
+):
     """Test that unrelated content returns low similarity scores."""
     # Setup mock with low similarity match
     mock_embeddings_dao.query_embeddings.return_value = [
@@ -144,7 +163,7 @@ def test_send_message_unrelated_content(rag_service, mock_embeddings_dao, mock_l
             ),
             similarity=0.1,
             embedding_metadata={},
-            document_id=1,
+            document=mock_document,
         )
     ]
 

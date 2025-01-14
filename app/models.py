@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy import JSON, String, DateTime, func, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
@@ -16,6 +16,7 @@ class Document(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     filepath: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     processed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -30,8 +31,8 @@ class Document(Base):
     def __repr__(self) -> str:
         return (
             f"<Document(id={self.id}, filepath={self.filepath}, "
-            f"processed={self.processed}, created_at={self.created_at}, "
-            f"updated_at={self.updated_at})>"
+            f"url={self.url}, processed={self.processed}, "
+            f"created_at={self.created_at}, updated_at={self.updated_at})>"
         )
 
 

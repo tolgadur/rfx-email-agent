@@ -94,6 +94,7 @@ class EmailAgentRunner:
         email_body = self.template_handler.render_template(
             body_response=rag_response.text,
             similarity_score=rag_response.max_similarity,
+            document_url=rag_response.document_url,
             num_attachments=num_attachments,
             num_processed_files=num_processed_files,
             num_failed_files=num_failed_files,
