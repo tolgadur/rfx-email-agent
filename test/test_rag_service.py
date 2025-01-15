@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from app.rag_service import RAGService
-from app.types import RAGResponse, DocumentMatch
+from app.data_types import RAGResponse, DocumentMatch
 from app.models import Document
 
 

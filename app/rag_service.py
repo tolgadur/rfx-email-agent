@@ -1,7 +1,7 @@
 import litellm
 from app.config import MAX_TOKENS, MODEL_NAME
 from app.embeddings_dao import EmbeddingsDAO
-from app.types import RAGResponse
+from app.data_types import RAGResponse
 
 
 class RAGService:

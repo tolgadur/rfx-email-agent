@@ -3,7 +3,7 @@ from litellm import embedding
 from app.config import EMBEDDING_MODEL, SIMILARITY_THRESHOLD
 from app.db_handler import DatabaseHandler
 from app.models import Embedding, Document
-from app.types import DocumentMatch, EmbeddingsError
+from app.data_types import DocumentMatch, EmbeddingsError
 
 
 class EmbeddingsDAO:
