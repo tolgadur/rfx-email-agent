@@ -13,7 +13,7 @@ A smart email agent that automatically processes and responds to RFPs (Request f
 
 ## Project Structure
 
-```
+```plaintext
 email-agent/
 ├── app/
 │   ├── main.py              # Entry point: runs email agent and API server
@@ -132,7 +132,7 @@ The application requires a PostgreSQL database with the `pgvector` extension for
 
 The database URL should follow this format:
 
-```
+```plaintext
 postgresql://username:password@host:port/database
 ```
 

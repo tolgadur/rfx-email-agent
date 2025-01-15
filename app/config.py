@@ -28,6 +28,9 @@ MAX_TOKENS = int(os.environ.get("MAX_TOKENS", 300))
 CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE", 500))
 CHUNK_OVERLAP = int(os.environ.get("CHUNK_OVERLAP", 100))
 
+# OpenAI settings
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
 # Embedding model
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-large")
 
