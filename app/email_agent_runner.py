@@ -2,8 +2,6 @@ from app.email_handler import EmailHandler
 from app.excel_handler import ExcelHandler
 from app.rag_service import RAGService, RAGResponse
 from app.template_handler import TemplateHandler
-from app.db_handler import DatabaseHandler
-from app.document_processor import DocumentProcessor
 
 
 class EmailAgentRunner:
@@ -20,8 +18,6 @@ class EmailAgentRunner:
         excel_handler: ExcelHandler,
         rag_service: RAGService,
         template_handler: TemplateHandler,
-        db_handler: DatabaseHandler,
-        doc_processor: DocumentProcessor,
     ):
         """Initialize the runner with required handlers.
 
@@ -30,15 +26,12 @@ class EmailAgentRunner:
             excel_handler: Handler for Excel file operations
             rag_service: Service for RAG operations
             template_handler: Handler for template rendering
-            db_handler: Handler for database operations
             doc_processor: Processor for document embeddings
         """
         self.email_handler = email_handler
         self.excel_handler = excel_handler
         self.rag_service = rag_service
         self.template_handler = template_handler
-        self.db_handler = db_handler
-        self.doc_processor = doc_processor
 
     def run(self):
         """Main processing loop that continuously monitors for new emails.
@@ -47,22 +40,11 @@ class EmailAgentRunner:
         The loop can only be terminated by external interruption (Ctrl+C) or
         an unhandled exception.
         """
-        print("Initializing database...")
-        try:
-            self.db_handler.setup_database()
-            print("Processing documents...")
-            self.doc_processor.process_all_documents()
-        except Exception as e:
-            print(f"Failed to setup database: {e}")
-            return
 
         print("Starting email processing...")
-        try:
-            for sender, subject, body, msg in self.email_handler.fetch_emails():
-                print(f"Processing email from {sender}: {subject}")
-                self._process_email(sender, subject, body, msg)
-        finally:
-            self.db_handler.close()
+        for sender, subject, body, msg in self.email_handler.fetch_emails():
+            print(f"Processing email from {sender}: {subject}")
+            self._process_email(sender, subject, body, msg)
 
     def _process_email(self, sender: str, subject: str, body: str, msg):
         """Process a single email with its potential attachments.

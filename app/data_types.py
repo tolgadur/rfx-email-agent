@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 from app.models import Document
+from pydantic import BaseModel, HttpUrl
 
 
 class EmbeddingsError(Exception):
@@ -22,3 +23,8 @@ class RAGResponse:
     text: str
     max_similarity: Optional[float]
     document_url: Optional[str] = None
+
+
+class PDFUrlRequest(BaseModel):
+    url: HttpUrl
+    password: str

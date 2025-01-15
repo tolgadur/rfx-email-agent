@@ -35,27 +35,13 @@ class DocumentProcessor:
 
         # Process PDFs
         for pdf_path in self.docs_dir.glob("*.pdf"):
-            try:
-                if not self._should_process_file(pdf_path):
-                    print(f"Skipping already processed PDF: {pdf_path.name}")
-                    continue
-                print(f"Processing PDF: {pdf_path.name}...")
-                self.process_pdf(pdf_path)
-            except Exception as e:
-                print(f"Error processing PDF {pdf_path.name}: {e}")
+            self.process_pdf(pdf_path)
 
         # Process Markdown files
         for md_path in self.docs_dir.glob("*.md"):
-            try:
-                if not self._should_process_file(md_path):
-                    print(f"Skipping already processed Markdown: {md_path.name}")
-                    continue
-                print(f"Processing Markdown: {md_path.name}...")
-                self.process_markdown(md_path)
-            except Exception as e:
-                print(f"Error processing Markdown {md_path.name}: {e}")
+            self.process_markdown(md_path)
 
-    def _should_process_file(self, file_path: Path) -> bool:
+    def _should_process_file(self, file_path: Path, session: Session) -> bool:
         """Check if a file needs processing.
 
         Args:
@@ -64,22 +50,32 @@ class DocumentProcessor:
         Returns:
             True if file should be processed, False if already processed
         """
-        with Session(self.embeddings_dao.db_handler.engine) as session:
-            doc = session.query(Document).filter_by(filepath=str(file_path)).first()
-            return doc is None or not doc.processed
+        doc = session.query(Document).filter_by(filepath=str(file_path)).first()
+        return doc is None or not doc.processed
 
-    def _create_document(self, file_path: Path, session: Session) -> Document:
+    def _create_document(
+        self, file_path: Path, session: Session, url: str = None
+    ) -> Document:
         """Create a new document record in the database.
 
         Args:
             file_path: Path to the document file
             session: Database session to use
+            url: Optional URL source of the document
 
         Returns:
             The created Document instance or existing one if present.
         """
         print(f"\nChecking for existing document: {file_path}")
-        # Check if the document already exists
+
+        # Check if document exists by URL first
+        if url:
+            existing_doc = session.query(Document).filter_by(url=url).first()
+            if existing_doc:
+                print(f"Found existing document with URL: {url}")
+                return existing_doc
+
+        # Check if document exists by filepath
         existing_doc = (
             session.query(Document).filter_by(filepath=str(file_path)).first()
         )
@@ -87,9 +83,9 @@ class DocumentProcessor:
             print(f"Found existing document with ID: {existing_doc.id}")
             return existing_doc
 
-        # Create a new document record if it doesn't exist
+        # Create a new document record
         print("Creating new document record...")
-        doc = Document(filepath=str(file_path))
+        doc = Document(filepath=str(file_path), url=url)
         session.add(doc)
         session.flush()  # Flush to get the ID without committing
         print(f"Created new document with ID: {doc.id}")
@@ -106,16 +102,21 @@ class DocumentProcessor:
         if doc:
             doc.processed = True
 
-    def process_pdf(self, pdf_path: Path) -> None:
+    def process_pdf(self, pdf_path: Path, url: str = None) -> None:
         """Process a single PDF file.
 
         Args:
             pdf_path: Path to the PDF file
+            url: Optional URL source of the PDF
         """
         try:
             print(f"\nStarting to process PDF: {pdf_path}")
             with Session(self.embeddings_dao.db_handler.engine) as session:
-                doc = self._create_document(pdf_path, session)
+                if not self._should_process_file(pdf_path, session):
+                    print(f"Skipping already processed PDF: {pdf_path.name}")
+                    return
+
+                doc = self._create_document(pdf_path, session, url)
                 if doc.processed:
                     print("Document is already processed")
                     return
@@ -151,6 +152,10 @@ class DocumentProcessor:
         try:
             print(f"\nStarting to process Markdown: {md_path}")
             with Session(self.embeddings_dao.db_handler.engine) as session:
+                if not self._should_process_file(md_path, session):
+                    print(f"Skipping already processed Markdown: {md_path.name}")
+                    return
+
                 doc = self._create_document(md_path, session)
                 if doc.processed:
                     print("Document is already processed")

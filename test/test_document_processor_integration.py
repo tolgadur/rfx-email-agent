@@ -43,7 +43,6 @@ def test_process_pdf(processor):
     with patch("pathlib.Path.exists", return_value=True), patch(
         "builtins.open", mock_open()
     ), patch("pypdf.PdfReader") as mock_reader:
-
         mock_page = MagicMock()
         mock_page.extract_text.return_value = content
         mock_reader.return_value.pages = [mock_page]
@@ -54,10 +53,61 @@ def test_process_pdf(processor):
         doc = session.query(Document).first()
         assert doc.filepath == "test.pdf"
         assert doc.processed is True
+        assert doc.url is None
 
         embedding = session.query(Embedding).first()
         assert embedding.text == content
         assert embedding.document_id == doc.id
+
+
+def test_process_pdf_with_url(processor):
+    """Test processing a PDF with an associated URL."""
+    content = "This is a test PDF file from URL."
+    test_url = "https://example.com/test.pdf"
+
+    with patch("pathlib.Path.exists", return_value=True), patch(
+        "builtins.open", mock_open()
+    ), patch("pypdf.PdfReader") as mock_reader:
+        mock_page = MagicMock()
+        mock_page.extract_text.return_value = content
+        mock_reader.return_value.pages = [mock_page]
+
+        processor.process_pdf(Path("test.pdf"), url=test_url)
+
+    with processor.embeddings_dao.db_handler.get_session() as session:
+        doc = session.query(Document).first()
+        assert doc.filepath == "test.pdf"
+        assert doc.processed is True
+        assert doc.url == test_url
+
+        embedding = session.query(Embedding).first()
+        assert embedding.text == content
+        assert embedding.document_id == doc.id
+
+
+def test_duplicate_url_processing(processor):
+    """Test that duplicate URLs are not processed twice."""
+    content = "This is a test PDF file."
+    test_url = "https://example.com/test.pdf"
+
+    with patch("pathlib.Path.exists", return_value=True), patch(
+        "builtins.open", mock_open()
+    ), patch("pypdf.PdfReader") as mock_reader:
+        mock_page = MagicMock()
+        mock_page.extract_text.return_value = content
+        mock_reader.return_value.pages = [mock_page]
+
+        # Process the first time
+        processor.process_pdf(Path("test1.pdf"), url=test_url)
+
+        # Try to process the same URL with a different file
+        processor.process_pdf(Path("test2.pdf"), url=test_url)
+
+    with processor.embeddings_dao.db_handler.get_session() as session:
+        # Should only be one document with this URL
+        docs = session.query(Document).filter_by(url=test_url).all()
+        assert len(docs) == 1
+        assert docs[0].filepath == "test1.pdf"  # Should keep the first file's path
 
 
 def test_text_chunking(processor):

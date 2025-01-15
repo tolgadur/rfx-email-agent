@@ -5,6 +5,11 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent.parent
 ASSETS_DIR = ROOT_DIR / "assets"
 
+# API settings
+HOST = os.environ.get("HOST", "localhost")
+PORT = int(os.environ.get("PORT", 8000))
+API_PASSWORD = os.environ.get("API_PASSWORD", "your-default-password-here")
+
 # Email settings
 EMAIL = os.environ["EMAIL"]
 PASSWORD = os.environ["PASSWORD"]
