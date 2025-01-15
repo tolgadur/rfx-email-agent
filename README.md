@@ -97,6 +97,46 @@ Note: The API is password-protected. Set the `API_PASSWORD` environment variable
    python -m app.main
    ```
 
+## Operations
+
+### Database Requirements
+
+The application requires a PostgreSQL database with the `pgvector` extension for storing and querying document embeddings. You have several options for setting this up:
+
+1. **Railway (Recommended for Development)**
+   - Sign up at [Railway.app](https://railway.app)
+   - Create a new PostgreSQL database
+   - Enable the `pgvector` extension
+   - Copy the connection URL to your `.env` file
+
+2. **Self-hosted PostgreSQL**
+   - Install PostgreSQL 15 or later
+   - Install the `pgvector` extension:
+     ```sql
+     CREATE EXTENSION vector;
+     ```
+   - Configure your database URL in `.env`
+
+3. **Other Managed Services**
+   - Any PostgreSQL provider that supports the `pgvector` extension will work
+   - Examples: Supabase, Neon, AWS RDS (with custom extensions)
+
+The database URL should follow this format:
+```
+postgresql://username:password@host:port/database
+```
+
+### Monitoring
+
+Consider setting up monitoring for:
+- Database connection health
+- Email polling status
+- API endpoint availability
+- Document processing queue
+- System resource usage
+
+You can use standard monitoring tools like Prometheus, Grafana, or your cloud provider's monitoring solution.
+
 ## Docker Support
 
 Build and run with Docker:
