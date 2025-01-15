@@ -1,4 +1,4 @@
-# Email RFP Agent
+# RFP Email Agent
 
 A smart email agent that automatically processes and responds to RFPs (Request for Proposals) received via email. The agent can handle both plaintext questions in email bodies and attached Excel/CSV files containing RFP questions. It uses RAG (Retrieval Augmented Generation) to provide accurate answers based on your organization's documentation.
 
