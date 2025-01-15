@@ -1,12 +1,12 @@
-# RFP Email Agent
+# RFX Email Agent
 
-A smart email agent that automatically processes and responds to RFPs (Request for Proposals) received via email. The agent can handle both plaintext questions in email bodies and attached Excel/CSV files containing RFP questions. It uses RAG (Retrieval Augmented Generation) to provide accurate answers based on your organization's documentation.
+A smart email agent that automatically processes and responds to RFX (including RFPs, security questionnaires, and technical queries) received via email. The agent can handle both plaintext questions in email bodies and attached Excel/CSV files containing questions. It uses RAG (Retrieval Augmented Generation) to provide accurate answers based on your organization's documentation.
 
 ## Features
 
-- Monitors a designated email inbox for incoming RFPs
+- Monitors a designated email inbox for incoming RFX documents
 - Processes questions from email body text
-- Handles Excel/CSV attachments with RFP questions
+- Handles Excel/CSV attachments with RFP/security questionnaire questions
 - Uses RAG to generate accurate responses based on your documentation
 - Supports both local document processing and remote PDF ingestion via URL
 - Maintains document embeddings in a PostgreSQL database with pgvector
