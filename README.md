@@ -79,7 +79,7 @@ Note: The API is password-protected. Set the `API_PASSWORD` environment variable
    - Email credentials
    - Database URL
    - API password
-   - Other settings
+   - Other settings (see config.py)
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
