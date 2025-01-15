@@ -46,6 +46,7 @@ There are two ways to add documents to the system:
 ### 1. Local Document Directory
 
 Place your PDF or Markdown documents in the `data/docs` directory. The system will automatically process these documents on startup. The documents should contain your organization's knowledge base, such as:
+
 - Technical documentation
 - Product specifications
 - Company policies
@@ -65,6 +66,7 @@ curl -X POST "http://localhost:8000/process-pdf-url" \
 ```
 
 The endpoint will:
+
 - Download the PDF from the provided URL
 - Validate it's a valid PDF file
 - Process and embed its content
@@ -81,10 +83,13 @@ Note: The API is password-protected. Set the `API_PASSWORD` environment variable
    - API password
    - Other settings (see config.py)
 3. Install dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
+
 4. Install system dependencies:
+
    ```bash
    # On macOS
    brew install libmagic
@@ -92,7 +97,9 @@ Note: The API is password-protected. Set the `API_PASSWORD` environment variable
    # On Ubuntu
    apt-get install libmagic1
    ```
+
 5. Run the application:
+
    ```bash
    python -m app.main
    ```
@@ -112,9 +119,11 @@ The application requires a PostgreSQL database with the `pgvector` extension for
 2. **Self-hosted PostgreSQL**
    - Install PostgreSQL 15 or later
    - Install the `pgvector` extension:
+
      ```sql
      CREATE EXTENSION vector;
      ```
+
    - Configure your database URL in `.env`
 
 3. **Other Managed Services**
@@ -122,6 +131,7 @@ The application requires a PostgreSQL database with the `pgvector` extension for
    - Examples: Supabase, Neon, AWS RDS (with custom extensions)
 
 The database URL should follow this format:
+
 ```
 postgresql://username:password@host:port/database
 ```
@@ -129,6 +139,7 @@ postgresql://username:password@host:port/database
 ### Monitoring
 
 Consider setting up monitoring for:
+
 - Database connection health
 - Email polling status
 - API endpoint availability
